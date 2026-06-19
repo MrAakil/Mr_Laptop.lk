@@ -16,7 +16,7 @@ def get_admin_analytics(
     db: Session = Depends(get_db)
 ):
     # Total Revenue (only count Non-Cancelled orders)
-    revenue_result = db.query(func.sum(models.Order.total_price)).filter(models.Order.status != "Cancelled").scalar()
+    revenue_result = db.query(func.sum(models.Order.total_amount)).filter(models.Order.order_status != "Cancelled").scalar()
     revenue = float(revenue_result) if revenue_result is not None else 0.0
 
     # Total Orders
@@ -36,13 +36,12 @@ def get_admin_analytics(
     # Sales by Category
     # We iterate over all non-cancelled orders and aggregate product categories
     sales_by_category: Dict[str, float] = {}
-    all_orders = db.query(models.Order).filter(models.Order.status != "Cancelled").all()
+    all_orders = db.query(models.Order).filter(models.Order.order_status != "Cancelled").all()
     for o in all_orders:
-        items = o.items  # JSON list
-        for item in items:
-            product_id = item.get("product_id")
-            quantity = item.get("quantity", 1)
-            price = item.get("price", 0.0)
+        for item in o.items:
+            product_id = item.product_id
+            quantity = item.quantity
+            price = item.unit_price
             
             # Fetch product category
             prod = db.query(models.Product).filter(models.Product.id == product_id).first()
@@ -65,14 +64,14 @@ def get_admin_analytics(
         # Calculate sum for this month
         month_start = datetime.datetime(year, month, 1)
         if month == 12:
-            month_end = datetime.datetime(year + 1, 1, 1)
+          month_end = datetime.datetime(year + 1, 1, 1)
         else:
-            month_end = datetime.datetime(year, month + 1, 1)
+          month_end = datetime.datetime(year, month + 1, 1)
             
-        month_rev_result = db.query(func.sum(models.Order.total_price)).filter(
+        month_rev_result = db.query(func.sum(models.Order.total_amount)).filter(
             models.Order.created_at >= month_start,
             models.Order.created_at < month_end,
-            models.Order.status != "Cancelled"
+            models.Order.order_status != "Cancelled"
         ).scalar()
         
         month_rev = float(month_rev_result) if month_rev_result is not None else 0.0

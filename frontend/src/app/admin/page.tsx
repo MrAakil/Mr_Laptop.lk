@@ -21,6 +21,15 @@ import {
   RotateCcw,
   Sparkles,
   X,
+  XCircle,
+  Download,
+  Search,
+  Filter,
+  FileText,
+  CheckCircle2,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 const BRANDS = ["Apple", "Dell", "HP", "Lenovo", "Asus", "Acer", "MSI", "Razer"];
@@ -42,6 +51,109 @@ export default function AdminDashboard() {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
   const [showProductModal, setShowProductModal] = useState(false);
+
+  // Orders Management States
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loadingOrders, setLoadingOrders] = useState(false);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPerPage, setOrdersPerPage] = useState(10);
+  const [ordersTotalPages, setOrdersTotalPages] = useState(1);
+  const [ordersSearch, setOrdersSearch] = useState("");
+  const [ordersStatusFilter, setOrdersStatusFilter] = useState("");
+  const [ordersPaymentFilter, setOrdersPaymentFilter] = useState("");
+  const [ordersSortBy, setOrdersSortBy] = useState("created_at");
+  const [ordersSortDir, setOrdersSortDir] = useState("desc");
+
+  // Order stats
+  const [orderStats, setOrderStats] = useState<any>(null);
+  const [loadingOrderStats, setLoadingOrderStats] = useState(false);
+
+  // Detail side-drawer states
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [showOrderDrawer, setShowOrderDrawer] = useState(false);
+  const [updatingFieldId, setUpdatingFieldId] = useState<number | null>(null);
+
+  // Fetch Order Manager list from GET /api/admin/orders
+  const loadOrderManagerData = async () => {
+    setLoadingOrders(true);
+    try {
+      const queryParams = new URLSearchParams({
+        page: ordersPage.toString(),
+        per_page: ordersPerPage.toString(),
+        sort_by: ordersSortBy,
+        sort_dir: ordersSortDir,
+      });
+      if (ordersSearch) queryParams.append("search", ordersSearch);
+      if (ordersStatusFilter) queryParams.append("order_status", ordersStatusFilter);
+      if (ordersPaymentFilter) queryParams.append("payment_status", ordersPaymentFilter);
+
+      const res = await fetch(`${API_URL}/admin/orders?${queryParams.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrders(data.orders);
+        setOrdersTotalPages(data.total_pages);
+        setTotalOrders(data.total);
+      }
+    } catch (err) {
+      console.error("Failed to load admin orders", err);
+    } finally {
+      setLoadingOrders(false);
+    }
+  };
+
+  // Fetch Order Stats from GET /api/admin/orders/stats
+  const loadOrderStats = async () => {
+    setLoadingOrderStats(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/orders/stats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setOrderStats(data);
+      }
+    } catch (err) {
+      console.error("Failed to load admin order stats", err);
+    } finally {
+      setLoadingOrderStats(false);
+    }
+  };
+
+  // Trigger loading order details and stats when admin tab matches
+  useEffect(() => {
+    if (user?.role === "admin" && token && adminTab === "orders") {
+      loadOrderManagerData();
+    }
+  }, [adminTab, ordersPage, ordersSearch, ordersStatusFilter, ordersPaymentFilter, token, user]);
+
+  useEffect(() => {
+    if (user?.role === "admin" && token && adminTab === "orders") {
+      loadOrderStats();
+    }
+  }, [adminTab, token, user]);
+
+  // Color classes for order status badges
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "bg-amber-500/10 text-amber-500 border border-amber-500/20";
+      case "Confirmed":
+        return "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
+      case "Processing":
+        return "bg-blue-500/10 text-blue-500 border border-blue-500/20";
+      case "Shipped":
+        return "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20";
+      case "Delivered":
+        return "bg-green-500/10 text-green-500 border border-green-500/20";
+      case "Cancelled":
+        return "bg-red-500/10 text-red-500 border border-red-500/20";
+      default:
+        return "bg-secondary text-muted-foreground border border-border";
+    }
+  };
 
   // New/Edit Product Form state
   const [prodName, setProdName] = useState("");
@@ -139,22 +251,93 @@ export default function AdminDashboard() {
     );
   }
 
-  // Handle Order Status Mutation
-  const handleUpdateOrderStatus = async (orderId: number, nextStatus: string) => {
+  // Download PDF Invoice as Admin
+  const handleDownloadInvoice = async (orderId: number, orderNumber: string) => {
     try {
-      const res = await fetch(`${API_URL}/orders/${orderId}/status`, {
+      const res = await fetch(`${API_URL}/orders/${orderId}/invoice`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Invoice-${orderNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert("Failed to download invoice.");
+      }
+    } catch (err) {
+      console.error("Error downloading invoice", err);
+    }
+  };
+
+  // Update order status/tracking/notes
+  const handleAdminUpdateOrder = async (
+    orderId: number,
+    payload: {
+      order_status?: string;
+      payment_status?: string;
+      tracking_number?: string | null;
+      notes?: string | null;
+    }
+  ) => {
+    setUpdatingFieldId(orderId);
+    try {
+      const res = await fetch(`${API_URL}/admin/orders/${orderId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        fetchAnalytics(); // refresh stats & recent orders
+        const updatedOrder = await res.json();
+        // Update local orders list state
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? updatedOrder : o)));
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(updatedOrder);
+        }
+        loadOrderStats();
+        fetchAnalytics();
+      } else {
+        const data = await res.json();
+        alert(data.detail || "Failed to update order details.");
       }
     } catch (err) {
       console.error("Order status update failed", err);
+    } finally {
+      setUpdatingFieldId(null);
+    }
+  };
+
+  // Soft delete order
+  const handleAdminDeleteOrder = async (orderId: number) => {
+    if (!confirm("Are you sure you want to soft-delete this order?")) return;
+    try {
+      const res = await fetch(`${API_URL}/admin/orders/${orderId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setOrders((prev) => prev.filter((o) => o.id !== orderId));
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(null);
+          setShowOrderDrawer(false);
+        }
+        loadOrderStats();
+        fetchAnalytics();
+      } else {
+        alert("Failed to delete order");
+      }
+    } catch (err) {
+      console.error("Delete order failed", err);
     }
   };
 
@@ -443,26 +626,25 @@ export default function AdminDashboard() {
                       </thead>
                       <tbody>
                         {stats.recent_orders.map((o: any) => (
-                          <tr key={o.id} className="border-b border-border/40 last:border-0">
-                            <td className="py-3 pr-4 font-bold text-foreground">#{o.id}</td>
-                            <td className="py-3 pr-4 font-semibold">{o.email}</td>
+                          <tr key={o.id} className="border-b border-border/40 last:border-0 hover:bg-secondary/20">
+                            <td className="py-3 pr-4 font-bold text-foreground font-mono">#{o.order_number}</td>
+                            <td className="py-3 pr-4 font-semibold">{o.customer_email}</td>
                             <td className="py-3 pr-4">{o.items.length} units</td>
-                            <td className="py-3 pr-4 font-bold text-primary">LKR {o.total_price.toLocaleString()}</td>
+                            <td className="py-3 pr-4 font-bold text-primary">LKR {o.total_amount.toLocaleString()}</td>
                             <td className="py-3 pr-4">{o.payment_method}</td>
                             <td className="py-3 pr-4">
-                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                                o.status === "Delivered" ? "bg-green-500/10 text-green-500" : "bg-amber-500/10 text-amber-500"
-                              }`}>
-                                {o.status}
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${getStatusBadgeClass(o.order_status)}`}>
+                                <span>{o.order_status}</span>
                               </span>
                             </td>
                             <td className="py-3 text-right">
                               <select
-                                value={o.status}
-                                onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                                className="bg-secondary/60 text-xs px-2 py-1 rounded border focus:outline-none"
+                                value={o.order_status}
+                                onChange={(e) => handleAdminUpdateOrder(o.id, { order_status: e.target.value })}
+                                className="bg-secondary/60 text-xs px-2 py-1 rounded border border-border focus:outline-none font-bold"
                               >
                                 <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
                                 <option value="Processing">Processing</option>
                                 <option value="Shipped">Shipped</option>
                                 <option value="Delivered">Delivered</option>
@@ -554,60 +736,360 @@ export default function AdminDashboard() {
             )}
 
             {/* ORDERS TAB */}
-            {adminTab === "orders" && stats && (
-              <div className="space-y-6">
-                <h2 className="text-base font-black uppercase tracking-wider text-foreground">All Customer Transactions</h2>
-                
-                <div className="p-6 rounded-3xl border border-glass-border bg-card">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs">
-                      <thead>
-                        <tr className="border-b border-border/40 text-muted-foreground uppercase font-bold">
-                          <th className="pb-3 pr-4">ID</th>
-                          <th className="pb-3 pr-4">Placed On</th>
-                          <th className="pb-3 pr-4">Delivery Address</th>
-                          <th className="pb-3 pr-4">Phone</th>
-                          <th className="pb-3 pr-4">LKR Total</th>
-                          <th className="pb-3 pr-4">Payment</th>
-                          <th className="pb-3 pr-4">Status</th>
-                          <th className="pb-3 text-right">Update Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {stats.recent_orders.map((o: any) => (
-                          <tr key={o.id} className="border-b border-border/40 last:border-0">
-                            <td className="py-3 pr-4 font-bold text-foreground">#{o.id}</td>
-                            <td className="py-3 pr-4">{new Date(o.created_at).toLocaleDateString()}</td>
-                            <td className="py-3 pr-4 truncate max-w-[150px]">{o.shipping_address}</td>
-                            <td className="py-3 pr-4 font-semibold">{o.phone}</td>
-                            <td className="py-3 pr-4 font-bold text-primary">LKR {o.total_price.toLocaleString()}</td>
-                            <td className="py-3 pr-4">{o.payment_method}</td>
-                            <td className="py-3 pr-4">
-                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold ${
-                                o.status === "Delivered" ? "bg-green-500/10 text-green-500" : "bg-amber-500/10 text-amber-500"
-                              }`}>
-                                {o.status}
-                              </span>
-                            </td>
-                            <td className="py-3 text-right">
+            {adminTab === "orders" && (
+              <div className="space-y-8">
+                {/* A. Aggregate Order Stats Cards */}
+                {loadingOrderStats ? (
+                  <div className="flex justify-center py-6">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  </div>
+                ) : orderStats ? (
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Total Sales Revenue</span>
+                      <span className="text-xl sm:text-2xl font-black text-primary">LKR {orderStats.revenue.toLocaleString()}</span>
+                    </div>
+                    <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">All Orders Count</span>
+                      <span className="text-xl sm:text-2xl font-black text-foreground">{orderStats.total_orders} Orders</span>
+                    </div>
+                    <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Active Deliveries</span>
+                      <span className="text-xl sm:text-2xl font-black text-indigo-500">
+                        {orderStats.shipped_orders + orderStats.processing_orders + orderStats.pending_orders} Active
+                      </span>
+                    </div>
+                    <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Average Ticket (AOV)</span>
+                      <span className="text-xl sm:text-2xl font-black text-emerald-500">LKR {Math.round(orderStats.average_order_value).toLocaleString()}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {/* B. Order List Control Bar (Search, Status Filter, Payment Filter) */}
+                <div className="p-6 rounded-3xl border border-glass-border bg-card space-y-4">
+                  <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    
+                    {/* Search Field */}
+                    <div className="relative w-full md:max-w-md">
+                      <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <input
+                        type="text"
+                        placeholder="Search by order number, customer name, email or phone..."
+                        value={ordersSearch}
+                        onChange={(e) => {
+                          setOrdersSearch(e.target.value);
+                          setOrdersPage(1);
+                        }}
+                        className="w-full h-10 pl-10 pr-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary text-foreground"
+                      />
+                    </div>
+
+                    {/* Filter Dropdowns */}
+                    <div className="flex flex-wrap gap-3 w-full md:w-auto">
+                      <div className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-xl border border-border/80 text-xs text-foreground font-bold">
+                        <Filter className="h-3.5 w-3.5 text-primary" />
+                        <select
+                          value={ordersStatusFilter}
+                          onChange={(e) => {
+                            setOrdersStatusFilter(e.target.value);
+                            setOrdersPage(1);
+                          }}
+                          className="bg-transparent focus:outline-none"
+                        >
+                          <option value="">All Statuses</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Confirmed">Confirmed</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Shipped">Shipped</option>
+                          <option value="Delivered">Delivered</option>
+                          <option value="Cancelled">Cancelled</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 bg-secondary px-3 py-1.5 rounded-xl border border-border/80 text-xs text-foreground font-bold">
+                        <DollarSign className="h-3.5 w-3.5 text-primary" />
+                        <select
+                          value={ordersPaymentFilter}
+                          onChange={(e) => {
+                            setOrdersPaymentFilter(e.target.value);
+                            setOrdersPage(1);
+                          }}
+                          className="bg-transparent focus:outline-none"
+                        >
+                          <option value="">All Payments</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Paid">Paid</option>
+                          <option value="Failed">Failed</option>
+                          <option value="Refunded">Refunded</option>
+                        </select>
+                      </div>
+
+                      <button
+                        onClick={() => {
+                          setOrdersSearch("");
+                          setOrdersStatusFilter("");
+                          setOrdersPaymentFilter("");
+                          setOrdersPage(1);
+                        }}
+                        className="px-4 h-9.5 rounded-xl border bg-secondary/50 hover:bg-secondary text-xs font-bold text-foreground transition-all"
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* C. Orders Datatable */}
+                  {loadingOrders ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    </div>
+                  ) : orders.length > 0 ? (
+                    <div className="space-y-4">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="border-b border-border/40 text-muted-foreground uppercase font-black tracking-wider pb-3 font-semibold">
+                              <th className="pb-3 pr-4">Order Number</th>
+                              <th className="pb-3 pr-4">Placed Date</th>
+                              <th className="pb-3 pr-4">Customer Name</th>
+                              <th className="pb-3 pr-4">Total Amount</th>
+                              <th className="pb-3 pr-4">Payment</th>
+                              <th className="pb-3 pr-4">Status</th>
+                              <th className="pb-3 text-right">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {orders.map((o) => (
+                              <tr
+                                key={o.id}
+                                className="border-b border-border/40 last:border-0 hover:bg-secondary/15 transition-colors cursor-pointer group"
+                                onClick={() => {
+                                  setSelectedOrder(o);
+                                  setShowOrderDrawer(true);
+                                }}
+                              >
+                                <td className="py-3.5 pr-4 font-bold text-foreground font-mono group-hover:text-primary transition-colors">
+                                  #{o.order_number}
+                                </td>
+                                <td className="py-3.5 pr-4 text-muted-foreground font-medium">
+                                  {new Date(o.created_at).toLocaleString()}
+                                </td>
+                                <td className="py-3.5 pr-4">
+                                  <div className="font-semibold text-foreground">{o.customer_name}</div>
+                                  <div className="text-[10px] text-muted-foreground">{o.customer_email}</div>
+                                </td>
+                                <td className="py-3.5 pr-4 font-black text-primary">
+                                  LKR {o.total_amount.toLocaleString()}
+                                </td>
+                                <td className="py-3.5 pr-4">
+                                  <div className="font-medium text-foreground">{o.payment_method}</div>
+                                  <div className="text-[10px] text-muted-foreground font-semibold">{o.payment_status}</div>
+                                </td>
+                                <td className="py-3.5 pr-4" onClick={(e) => e.stopPropagation()}>
+                                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black border uppercase tracking-wider ${getStatusBadgeClass(o.order_status)}`}>
+                                    <span>{o.order_status}</span>
+                                  </span>
+                                </td>
+                                <td className="py-3.5 text-right" onClick={(e) => e.stopPropagation()}>
+                                  <div className="flex justify-end items-center gap-2">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedOrder(o);
+                                        setShowOrderDrawer(true);
+                                      }}
+                                      className="h-7 px-3 bg-secondary hover:bg-primary/10 text-foreground hover:text-primary text-[10px] font-black rounded-lg transition-all"
+                                    >
+                                      Edit / View
+                                    </button>
+                                    <button
+                                      onClick={() => handleDownloadInvoice(o.id, o.order_number)}
+                                      className="p-1.5 rounded-lg bg-secondary hover:bg-primary/10 text-muted-foreground hover:text-primary transition-all"
+                                      title="Download Invoice"
+                                    >
+                                      <Download className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Pagination Controls */}
+                      {ordersTotalPages > 1 && (
+                        <div className="flex items-center justify-between border-t border-border/40 pt-4 text-xs font-bold text-muted-foreground">
+                          <div>
+                            Showing page <span className="text-foreground">{ordersPage}</span> of <span className="text-foreground">{ordersTotalPages}</span> ({totalOrders} total orders)
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setOrdersPage((prev) => Math.max(prev - 1, 1))}
+                              disabled={ordersPage === 1}
+                              className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-secondary hover:text-foreground disabled:opacity-40 transition-all cursor-pointer"
+                            >
+                              <ChevronLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => setOrdersPage((prev) => Math.min(prev + 1, ordersTotalPages))}
+                              disabled={ordersPage === ordersTotalPages}
+                              className="h-8 w-8 rounded-lg border border-border flex items-center justify-center hover:bg-secondary hover:text-foreground disabled:opacity-40 transition-all cursor-pointer"
+                            >
+                              <ChevronRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-muted-foreground text-xs font-semibold">
+                      No customer orders found matching the filter criteria.
+                    </div>
+                  )}
+
+                </div>
+
+                {/* D. Slide-Over Side Drawer detail panel */}
+                {showOrderDrawer && selectedOrder && (
+                  <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm p-0 animate-in fade-in duration-200">
+                    {/* Click outside to close */}
+                    <div className="absolute inset-0" onClick={() => setShowOrderDrawer(false)} />
+                    
+                    <div className="relative w-full max-w-xl bg-card border-l border-glass-border h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+                      
+                      {/* Drawer Header */}
+                      <div className="p-6 border-b border-border/40 flex items-center justify-between">
+                        <div className="space-y-1">
+                          <h3 className="text-sm font-black uppercase tracking-wider text-muted-foreground">Order Operations</h3>
+                          <div className="text-lg font-black text-foreground font-mono">#{selectedOrder.order_number}</div>
+                        </div>
+                        <button
+                          onClick={() => setShowOrderDrawer(false)}
+                          className="h-8 w-8 rounded-full hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-all"
+                        >
+                          <X className="h-5 w-5" />
+                        </button>
+                      </div>
+
+                      {/* Drawer Content Area */}
+                      <div className="flex-grow overflow-y-auto p-6 space-y-6">
+                        
+                        {/* Status management block */}
+                        <div className="p-4 rounded-2xl border border-glass-border bg-secondary/15 space-y-4">
+                          <h4 className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Operations Control</h4>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground">Order Status</label>
                               <select
-                                value={o.status}
-                                onChange={(e) => handleUpdateOrderStatus(o.id, e.target.value)}
-                                className="bg-secondary/60 text-xs px-2 py-1 rounded border focus:outline-none font-semibold"
+                                value={selectedOrder.order_status}
+                                onChange={(e) => handleAdminUpdateOrder(selectedOrder.id, { order_status: e.target.value })}
+                                className="w-full h-9 px-3 rounded-lg bg-card border border-border text-xs focus:outline-none focus:border-primary font-bold text-foreground"
                               >
                                 <option value="Pending">Pending</option>
+                                <option value="Confirmed">Confirmed</option>
                                 <option value="Processing">Processing</option>
                                 <option value="Shipped">Shipped</option>
                                 <option value="Delivered">Delivered</option>
                                 <option value="Cancelled">Cancelled</option>
                               </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold text-muted-foreground">Payment Status</label>
+                              <select
+                                value={selectedOrder.payment_status}
+                                onChange={(e) => handleAdminUpdateOrder(selectedOrder.id, { payment_status: e.target.value })}
+                                className="w-full h-9 px-3 rounded-lg bg-card border border-border text-xs focus:outline-none focus:border-primary font-bold text-foreground"
+                              >
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Failed">Failed</option>
+                                <option value="Refunded">Refunded</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-muted-foreground">Courier tracking number (Lanka/International)</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                placeholder="Enter tracking number"
+                                defaultValue={selectedOrder.tracking_number || ""}
+                                onBlur={(e) => handleAdminUpdateOrder(selectedOrder.id, { tracking_number: e.target.value || null })}
+                                className="flex-grow h-9 px-3 rounded-lg bg-card border border-border text-xs focus:outline-none focus:border-primary text-foreground font-mono font-bold"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Customer Info profile */}
+                        <div className="space-y-3">
+                          <h4 className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Customer Profile</h4>
+                          <div className="p-4 rounded-2xl border border-border/40 text-xs space-y-2.5">
+                            <div className="flex justify-between"><span className="text-muted-foreground font-bold">FullName:</span> <span className="font-semibold text-foreground">{selectedOrder.customer_name}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground font-bold">Email Address:</span> <span className="font-semibold text-foreground">{selectedOrder.customer_email}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground font-bold">Phone Number:</span> <span className="font-semibold text-foreground">{selectedOrder.customer_phone}</span></div>
+                            <div className="flex justify-between"><span className="text-muted-foreground font-bold">Shipping Address:</span> <span className="font-semibold text-foreground text-right">{selectedOrder.shipping_address}, {selectedOrder.city}, {selectedOrder.district}, {selectedOrder.postal_code}</span></div>
+                            {selectedOrder.notes && (
+                              <div className="pt-2 border-t border-border/40"><span className="text-muted-foreground font-bold block mb-1">Customer notes:</span> <span className="text-foreground block italic bg-secondary/35 p-2 rounded-lg">"{selectedOrder.notes}"</span></div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Ordered Laptop items list specifications */}
+                        <div className="space-y-3">
+                          <h4 className="text-[10px] uppercase font-black text-muted-foreground tracking-wider">Purchased Laptop Specifications</h4>
+                          <div className="space-y-2">
+                            {selectedOrder.items.map((item: any, idx: number) => (
+                              <div key={idx} className="flex gap-4 p-3 rounded-2xl border border-border/30 bg-card items-center text-xs">
+                                <div className="h-10 w-10 bg-white rounded border border-border/20 p-1 flex items-center justify-center shrink-0">
+                                  <img src={item.product_image || "https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=200"} alt="" className="h-full w-full object-contain" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold truncate text-foreground">{item.product_name}</div>
+                                  <div className="text-[10px] text-muted-foreground">Qty: {item.quantity} • Unit Price: LKR {item.unit_price.toLocaleString()}</div>
+                                </div>
+                                <div className="font-black text-foreground shrink-0">LKR {item.total_price.toLocaleString()}</div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Financial Subtotals */}
+                        <div className="p-4 rounded-2xl border border-border/40 text-xs space-y-2 bg-secondary/5">
+                          <div className="flex justify-between text-muted-foreground"><span>Subtotal amount</span> <span>LKR {selectedOrder.subtotal.toLocaleString()}</span></div>
+                          <div className="flex justify-between text-muted-foreground"><span>Shipping fee</span> <span className="text-green-500 font-bold">LKR {selectedOrder.shipping_fee.toLocaleString()} (FREE)</span></div>
+                          <div className="flex justify-between text-muted-foreground"><span>Discount applied</span> <span>LKR {selectedOrder.discount.toLocaleString()}</span></div>
+                          <div className="flex justify-between text-sm font-black text-foreground pt-2 border-t border-border/40"><span>Grand Total</span> <span className="text-primary">LKR {selectedOrder.total_amount.toLocaleString()}</span></div>
+                        </div>
+
+                      </div>
+
+                      {/* Drawer Actions Footer */}
+                      <div className="p-6 border-t border-border/40 flex gap-3">
+                        <button
+                          onClick={() => handleDownloadInvoice(selectedOrder.id, selectedOrder.order_number)}
+                          className="flex-1 h-11 bg-secondary border border-glass-border hover:bg-secondary/80 text-foreground font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>Stream invoice PDF</span>
+                        </button>
+                        <button
+                          onClick={() => handleAdminDeleteOrder(selectedOrder.id)}
+                          className="h-11 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
+                          title="Soft delete order"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span>Delete Order</span>
+                        </button>
+                      </div>
+
+                    </div>
                   </div>
-                </div>
+                )}
+
               </div>
             )}
           </>

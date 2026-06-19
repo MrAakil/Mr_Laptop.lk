@@ -1,5 +1,6 @@
 import datetime
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Text, Table
+import enum
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime, JSON, Text, Table, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -51,22 +52,66 @@ class Product(Base):
     reviews = relationship("Review", back_populates="product", cascade="all, delete-orphan")
     wishlisted_by = relationship("User", secondary=wishlist_association, back_populates="wishlist_products")
 
+class OrderStatus(str, enum.Enum):
+    PENDING = "Pending"
+    CONFIRMED = "Confirmed"
+    PROCESSING = "Processing"
+    SHIPPED = "Shipped"
+    DELIVERED = "Delivered"
+    CANCELLED = "Cancelled"
+
+class PaymentStatus(str, enum.Enum):
+    PENDING = "Pending"
+    PAID = "Paid"
+    FAILED = "Failed"
+    REFUNDED = "Refunded"
+
 class Order(Base):
     __tablename__ = "orders"
 
     id = Column(Integer, primary_key=True, index=True)
+    order_number = Column(String, unique=True, index=True, nullable=False)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
-    total_price = Column(Float, nullable=False)
-    status = Column(String, default="Pending")  # Pending, Processing, Shipped, Delivered, Cancelled
-    payment_method = Column(String, nullable=False)  # Cash on Delivery, Bank Transfer
+    customer_name = Column(String, nullable=False)
+    customer_email = Column(String, nullable=False)
+    customer_phone = Column(String, nullable=False)
     shipping_address = Column(Text, nullable=False)
-    phone = Column(String, nullable=False)
-    email = Column(String, nullable=False)
-    items = Column(JSON, nullable=False)  # [{"product_id": 1, "name": "Laptop X", "quantity": 1, "price": 150000}]
+    city = Column(String, nullable=False)
+    district = Column(String, nullable=False)
+    postal_code = Column(String, nullable=False)
+    subtotal = Column(Float, nullable=False)
+    shipping_fee = Column(Float, default=0.0, nullable=False)
+    discount = Column(Float, default=0.0, nullable=False)
+    total_amount = Column(Float, nullable=False)
+    payment_method = Column(String, nullable=False)
+    payment_status = Column(String, default=PaymentStatus.PENDING.value, nullable=False)
+    order_status = Column(String, default=OrderStatus.PENDING.value, nullable=False)
+    tracking_number = Column(String, nullable=True)
+    notes = Column(Text, nullable=True)
+    invoice_number = Column(String, nullable=True)
+    is_deleted = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
 
     # Relationships
     user = relationship("User", back_populates="orders")
+    items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+
+class OrderItem(Base):
+    __tablename__ = "order_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id", ondelete="CASCADE"), nullable=False)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True)
+    product_name = Column(String, nullable=False)
+    product_image = Column(String, nullable=True)
+    unit_price = Column(Float, nullable=False)
+    quantity = Column(Integer, nullable=False)
+    total_price = Column(Float, nullable=False)
+
+    # Relationships
+    order = relationship("Order", back_populates="items")
+    product = relationship("Product")
 
 class Review(Base):
     __tablename__ = "reviews"

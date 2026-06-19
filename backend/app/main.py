@@ -38,9 +38,11 @@ app.add_middleware(
 app.include_router(auth.router, prefix="/api")
 app.include_router(products.router, prefix="/api")
 app.include_router(orders.router, prefix="/api")
+app.include_router(orders.admin_router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")
 app.include_router(contact.router, prefix="/api")
+
 
 @app.get("/")
 def read_root():

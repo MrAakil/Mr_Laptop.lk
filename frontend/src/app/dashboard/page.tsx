@@ -22,6 +22,9 @@ import {
   Loader2,
   LogOut,
   Calendar,
+  XCircle,
+  Download,
+  FileText,
 } from "lucide-react";
 
 function DashboardContent() {
@@ -36,6 +39,8 @@ function DashboardContent() {
   // Orders State
   const [orders, setOrders] = useState<any[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState<number | null>(null);
+  const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<number | null>(null);
 
   // Profile Form State
   const [fullName, setFullName] = useState("");
@@ -43,6 +48,66 @@ function DashboardContent() {
   const [address, setAddress] = useState("");
   const [profileMessage, setProfileMessage] = useState("");
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Download PDF Invoice
+  const handleDownloadInvoice = async (orderId: number, orderNumber: string) => {
+    setDownloadingInvoiceId(orderId);
+    try {
+      const res = await fetch(`${API_URL}/orders/${orderId}/invoice`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `Invoice-${orderNumber}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        alert("Failed to download invoice.");
+      }
+    } catch (err) {
+      console.error("Error downloading invoice", err);
+    } finally {
+      setDownloadingInvoiceId(null);
+    }
+  };
+
+  // Cancel order (only if status is Pending)
+  const handleCancelOrder = async (orderId: number) => {
+    if (!confirm("Are you sure you want to cancel this order?")) return;
+    setCancellingOrderId(orderId);
+    try {
+      const response = await fetch(`${API_URL}/orders/${orderId}/cancel`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        // Update local state status
+        const updatedOrders = orders.map((o) => {
+          if (o.id === orderId) {
+            return { ...o, order_status: "Cancelled", payment_status: "Failed" };
+          }
+          return o;
+        });
+        setOrders(updatedOrders);
+      } else {
+        const data = await response.json();
+        alert(data.detail || "Failed to cancel order.");
+      }
+    } catch (err) {
+      console.error("Error cancelling order", err);
+    } finally {
+      setCancellingOrderId(null);
+    }
+  };
 
   // Auto tab adjustment on search params changes
   useEffect(() => {
@@ -123,42 +188,66 @@ function DashboardContent() {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Pending":
-        return <Clock className="h-5 w-5 text-amber-500" />;
+        return <Clock className="h-4 w-4 text-amber-500" />;
+      case "Confirmed":
+        return <CheckCircle2 className="h-4 w-4 text-emerald-500" />;
       case "Processing":
-        return <Compass className="h-5 w-5 text-blue-500" />;
+        return <Compass className="h-4 w-4 text-blue-500" />;
       case "Shipped":
-        return <Truck className="h-5 w-5 text-indigo-500" />;
+        return <Truck className="h-4 w-4 text-indigo-500" />;
       case "Delivered":
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "Cancelled":
+        return <XCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Clock className="h-5 w-5 text-muted-foreground" />;
+        return <Clock className="h-4 w-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStatusBadgeClass = (status: string) => {
+    switch (status) {
+      case "Pending":
+        return "bg-amber-500/10 text-amber-500 border border-amber-500/20";
+      case "Confirmed":
+        return "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20";
+      case "Processing":
+        return "bg-blue-500/10 text-blue-500 border border-blue-500/20";
+      case "Shipped":
+        return "bg-indigo-500/10 text-indigo-500 border border-indigo-500/20";
+      case "Delivered":
+        return "bg-green-500/10 text-green-500 border border-green-500/20";
+      case "Cancelled":
+        return "bg-red-500/10 text-red-500 border border-red-500/20";
+      default:
+        return "bg-secondary text-muted-foreground border border-border";
     }
   };
 
   const renderOrderProgress = (status: string) => {
-    const statuses = ["Pending", "Processing", "Shipped", "Delivered"];
+    const statuses = ["Pending", "Confirmed", "Processing", "Shipped", "Delivered"];
     const activeIndex = statuses.indexOf(status);
 
     if (status === "Cancelled") {
       return (
-        <div className="p-3 rounded-lg bg-red-500/10 text-red-500 text-xs font-bold inline-block border border-red-500/20">
-          Order Cancelled
+        <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 text-red-500 text-xs font-bold border border-red-500/20 max-w-sm mt-4">
+          <XCircle className="h-4 w-4 shrink-0" />
+          <span>This order has been cancelled and stock was restored.</span>
         </div>
       );
     }
 
     return (
       <div className="flex flex-col sm:flex-row sm:items-center gap-6 mt-4 pt-4 border-t border-border/40">
-        <div className="text-[10px] uppercase font-bold text-muted-foreground">Tracking Progress</div>
-        <div className="flex items-center gap-2 flex-grow max-w-lg">
+        <div className="text-[10px] uppercase font-black tracking-wider text-muted-foreground shrink-0">Tracking Status</div>
+        <div className="flex items-center gap-2 flex-grow max-w-xl overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
           {statuses.map((s, idx) => {
             const isCompleted = idx <= activeIndex;
             return (
               <React.Fragment key={s}>
                 {/* Step ball */}
-                <div className="flex flex-col items-center shrink-0">
+                <div className="flex flex-col items-center shrink-0 min-w-[56px]">
                   <div
-                    className={`h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-black border transition-all ${
+                    className={`h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black border transition-all ${
                       isCompleted
                         ? "bg-primary text-white border-primary shadow-[0_0_10px_rgba(59,130,246,0.3)]"
                         : "bg-secondary text-muted-foreground border-border"
@@ -171,7 +260,7 @@ function DashboardContent() {
                 {/* Step Connector bar */}
                 {idx < statuses.length - 1 && (
                   <div
-                    className={`h-[2px] flex-grow transition-all duration-500 ${
+                    className={`h-[2px] min-w-[20px] flex-grow transition-all duration-500 ${
                       idx < activeIndex ? "bg-primary" : "bg-border"
                     }`}
                   />
@@ -283,12 +372,12 @@ function DashboardContent() {
                     {orders.map((o) => (
                       <div
                         key={o.id}
-                        className="p-6 rounded-2xl border border-glass-border bg-card/40 backdrop-blur-sm space-y-4"
+                        className="p-6 rounded-2xl border border-glass-border bg-card/45 backdrop-blur-sm space-y-4"
                       >
                         {/* Order Header */}
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/40 pb-4">
                           <div className="space-y-0.5">
-                            <div className="text-sm font-black text-foreground">Order #{o.id}</div>
+                            <div className="text-sm font-black text-foreground">Order #{o.order_number}</div>
                             <div className="text-[10px] text-muted-foreground flex items-center gap-1">
                               <Calendar className="h-3.5 w-3.5" />
                               <span>Placed: {new Date(o.created_at).toLocaleDateString()}</span>
@@ -297,12 +386,12 @@ function DashboardContent() {
 
                           <div className="flex items-center gap-4">
                             <div className="text-right">
-                              <div className="text-[10px] text-muted-foreground">Total Price</div>
-                              <div className="text-sm font-black text-primary">LKR {o.total_price.toLocaleString()}</div>
+                              <div className="text-[10px] text-muted-foreground font-semibold">Grand Total</div>
+                              <div className="text-sm font-black text-primary">LKR {o.total_amount.toLocaleString()}</div>
                             </div>
-                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary text-xs font-bold">
-                              {getStatusIcon(o.status)}
-                              <span>{o.status}</span>
+                            <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${getStatusBadgeClass(o.order_status)}`}>
+                              {getStatusIcon(o.order_status)}
+                              <span>{o.order_status}</span>
                             </div>
                           </div>
                         </div>
@@ -312,18 +401,73 @@ function DashboardContent() {
                           {o.items.map((item: any, index: number) => (
                             <div key={index} className="flex gap-4 items-center text-xs">
                               <div className="h-10 w-10 bg-white rounded border border-border/30 p-1 shrink-0 flex items-center justify-center">
-                                <img src={item.image_url || "https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=200"} alt="" className="h-full w-full object-contain" />
+                                <img src={item.product_image || "https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=200"} alt="" className="h-full w-full object-contain" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="font-bold truncate text-foreground">{item.name}</div>
-                                <div className="text-[10px] text-muted-foreground">Qty: {item.quantity} • Price: LKR {item.price.toLocaleString()}</div>
+                                <div className="font-bold truncate text-foreground">{item.product_name}</div>
+                                <div className="text-[10px] text-muted-foreground">Qty: {item.quantity} • Price: LKR {item.unit_price.toLocaleString()}</div>
+                              </div>
+                              <div className="font-black text-foreground text-xs">
+                                LKR {item.total_price.toLocaleString()}
                               </div>
                             </div>
                           ))}
                         </div>
 
+                        {/* Shipping and Payment Info */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl border border-border/30 bg-secondary/15 text-xs text-foreground">
+                          <div>
+                            <span className="font-black text-muted-foreground text-[10px] uppercase block mb-1">Shipping Details</span>
+                            <span className="font-medium">{o.customer_name}</span>
+                            <span className="text-muted-foreground block text-[11px] mt-0.5">{o.shipping_address}, {o.city}, {o.district}, {o.postal_code}</span>
+                          </div>
+                          <div>
+                            <span className="font-black text-muted-foreground text-[10px] uppercase block mb-1">Payment Information</span>
+                            <span className="font-medium block">{o.payment_method}</span>
+                            <span className="text-muted-foreground block text-[11px] mt-0.5">Status: <span className="font-bold text-foreground">{o.payment_status}</span></span>
+                          </div>
+                          <div>
+                            <span className="font-black text-muted-foreground text-[10px] uppercase block mb-1">Tracking & Notes</span>
+                            <span className="text-[11px] block">
+                              Tracking No: {o.tracking_number ? <span className="font-mono bg-secondary border border-border/40 px-1.5 py-0.5 rounded text-foreground font-bold">{o.tracking_number}</span> : <span className="text-muted-foreground">Not shipped yet</span>}
+                            </span>
+                            {o.notes && <span className="text-muted-foreground italic mt-1.5 block text-[11px]">"{o.notes}"</span>}
+                          </div>
+                        </div>
+
                         {/* Order Progress Visualizer */}
-                        {renderOrderProgress(o.status)}
+                        {renderOrderProgress(o.order_status)}
+
+                        {/* Order Actions */}
+                        <div className="flex flex-wrap gap-3 pt-2">
+                          <button
+                            onClick={() => handleDownloadInvoice(o.id, o.order_number)}
+                            disabled={downloadingInvoiceId === o.id}
+                            className="h-9 px-4 rounded-xl border border-glass-border bg-secondary/50 hover:bg-secondary text-foreground text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          >
+                            {downloadingInvoiceId === o.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Download className="h-3.5 w-3.5" />
+                            )}
+                            <span>Download Invoice (PDF)</span>
+                          </button>
+
+                          {o.order_status === "Pending" && (
+                            <button
+                              onClick={() => handleCancelOrder(o.id)}
+                              disabled={cancellingOrderId === o.id}
+                              className="h-9 px-4 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ml-auto"
+                            >
+                              {cancellingOrderId === o.id ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <XCircle className="h-3.5 w-3.5" />
+                              )}
+                              <span>Cancel Order</span>
+                            </button>
+                          )}
+                        </div>
 
                       </div>
                     ))}

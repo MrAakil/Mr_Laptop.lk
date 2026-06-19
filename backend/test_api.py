@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
-from app.models import User, Product, Order, Review
+from app.models import User, Product, Order, Review, OrderItem
 from app.auth import MAX_BCRYPT_PASSWORD_BYTES, get_password_hash, verify_password
 
 class TestMrLaptopBackend(unittest.TestCase):
@@ -117,15 +117,34 @@ class TestMrLaptopBackend(unittest.TestCase):
         order_qty = 2
 
         # Create Order
+        unit_price = product.price * (1 - (product.discount / 100))
+        total_item_price = unit_price * order_qty
+
         order = Order(
+            order_number="ML-TEST-0001",
             user_id=1,
-            total_price=350000.0 * 0.95 * order_qty,
-            status="Pending",
-            payment_method="Cash on Delivery",
+            customer_name="Test Customer",
+            customer_email="cust@email.com",
+            customer_phone="123456",
             shipping_address="Colombo, SL",
-            phone="123456",
-            email="cust@email.com",
-            items=[{"product_id": product.id, "name": product.name, "quantity": order_qty, "price": product.price}]
+            city="Colombo",
+            district="Colombo",
+            postal_code="00300",
+            subtotal=total_item_price,
+            total_amount=total_item_price,
+            payment_method="Cash on Delivery",
+            order_status="Pending",
+            payment_status="Pending",
+            items=[
+                OrderItem(
+                    product_id=product.id,
+                    product_name=product.name,
+                    product_image=product.image_urls[0] if product.image_urls else "",
+                    unit_price=unit_price,
+                    quantity=order_qty,
+                    total_price=total_item_price
+                )
+            ]
         )
         
         # Decrement product stock inside test

@@ -30,11 +30,11 @@ def _user_to_list_item(user: models.User, db: Session) -> schemas.AdminUserListI
     order_agg = (
         db.query(
             func.count(models.Order.id).label("cnt"),
-            func.coalesce(func.sum(models.Order.total_price), 0.0).label("total"),
+            func.coalesce(func.sum(models.Order.total_amount), 0.0).label("total"),
         )
         .filter(
             models.Order.user_id == user.id,
-            models.Order.status != "Cancelled",
+            models.Order.order_status != "Cancelled",
         )
         .first()
     )
@@ -89,7 +89,7 @@ def get_user_stats(
     suspended_users = base.filter(models.User.account_status == "suspended").count()
 
     # New this month
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.UTC)
     month_start = datetime.datetime(now.year, now.month, 1)
     new_this_month = base.filter(models.User.created_at >= month_start).count()
 
@@ -204,7 +204,7 @@ def get_user_detail(
     )
 
     total_spent = sum(
-        o.total_price for o in orders if o.status != "Cancelled"
+        o.total_amount for o in orders if o.order_status != "Cancelled"
     )
 
     # Wishlist products – return lightweight dicts
@@ -222,8 +222,10 @@ def get_user_detail(
     for o in orders:
         order_items.append(schemas.AdminUserOrderItem(
             id=o.id,
-            total_price=o.total_price,
-            status=o.status,
+            order_number=o.order_number,
+            total_amount=o.total_amount,
+            order_status=o.order_status,
+            payment_status=o.payment_status,
             payment_method=o.payment_method,
             items=o.items,
             created_at=o.created_at,

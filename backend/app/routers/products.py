@@ -216,7 +216,7 @@ def create_review(
         # Update existing review
         existing_review.rating = review_data.rating
         existing_review.comment = review_data.comment
-        existing_review.created_at = datetime.datetime.utcnow()
+        existing_review.created_at = datetime.datetime.now(datetime.UTC)
         new_review = existing_review
     else:
         # Create new review

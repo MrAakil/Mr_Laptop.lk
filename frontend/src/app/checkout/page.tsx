@@ -27,6 +27,9 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("Colombo");
+  const [district, setDistrict] = useState("Colombo");
+  const [postalCode, setPostalCode] = useState("");
+  const [notes, setNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("Cash on Delivery");
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -85,11 +88,10 @@ export default function CheckoutPage() {
     setErrorMsg("");
     setIsSubmitting(true);
 
+    // Format to match backend Pydantic OrderItemCreate schema
     const itemsPayload = cart.map((item) => ({
       product_id: item.id,
-      name: item.name,
       quantity: item.quantity,
-      price: item.price,
     }));
 
     try {
@@ -100,10 +102,15 @@ export default function CheckoutPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          customer_name: fullName,
+          customer_email: email,
+          customer_phone: phone,
+          shipping_address: address,
+          city,
+          district,
+          postal_code: postalCode,
+          notes: notes || null,
           payment_method: paymentMethod,
-          shipping_address: `${address}, ${city}`,
-          phone,
-          email,
           items: itemsPayload,
         }),
       });
@@ -126,6 +133,33 @@ export default function CheckoutPage() {
 
   // If order was successfully completed
   if (successOrder) {
+    // Generate WhatsApp click-to-chat URL
+    const productsText = successOrder.items
+      .map((item: any) => `- ${item.product_name} x ${item.quantity}`)
+      .join("\n");
+      
+    const waMessage = `NEW ORDER
+
+Order Number:
+${successOrder.order_number}
+
+Customer:
+${successOrder.customer_name}
+
+Phone:
+${successOrder.customer_phone}
+
+Total:
+Rs ${successOrder.total_amount.toLocaleString()}
+
+Products:
+${productsText}
+
+Address:
+${successOrder.shipping_address}, ${successOrder.city}, ${successOrder.district}, ${successOrder.postal_code}`;
+
+    const waUrl = `https://wa.me/94789788848?text=${encodeURIComponent(waMessage)}`;
+
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
@@ -138,27 +172,43 @@ export default function CheckoutPage() {
           </h1>
           <p className="text-sm text-muted-foreground mb-4">
             Thank you for shopping with Mr_Laptop.lk. Your order ID is{" "}
-            <span className="font-bold text-foreground">#{successOrder.id}</span>.
+            <span className="font-bold text-foreground">#{successOrder.order_number}</span>.
           </p>
-          <div className="p-4 rounded-xl border border-glass-border bg-secondary/35 text-xs text-left space-y-2 mb-8 w-full">
-            <div><span className="font-bold text-muted-foreground">Shipping To:</span> {fullName}</div>
-            <div><span className="font-bold text-muted-foreground">Delivery Address:</span> {successOrder.shipping_address}</div>
+          
+          <div className="p-4 rounded-xl border border-glass-border bg-secondary/35 text-xs text-left space-y-2 mb-6 w-full">
+            <div><span className="font-bold text-muted-foreground">Shipping To:</span> {successOrder.customer_name}</div>
+            <div><span className="font-bold text-muted-foreground">Delivery Address:</span> {successOrder.shipping_address}, {successOrder.city}, {successOrder.district}</div>
             <div><span className="font-bold text-muted-foreground">Payment Method:</span> {successOrder.payment_method}</div>
-            <div><span className="font-bold text-muted-foreground">Total Paid:</span> LKR {successOrder.total_price.toLocaleString()}</div>
+            <div><span className="font-bold text-muted-foreground">Total:</span> LKR {successOrder.total_amount.toLocaleString()}</div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-3 w-full">
-            <button
-              onClick={() => router.push("/dashboard?tab=orders")}
-              className="flex-1 h-11 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:bg-primary/95 transition-all"
+
+          <div className="flex flex-col gap-3 w-full">
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full h-11 bg-green-600 hover:bg-green-700 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-green-500/10"
             >
-              Track Order
-            </button>
-            <button
-              onClick={() => router.push("/catalog")}
-              className="flex-1 h-11 bg-secondary border text-foreground font-bold rounded-xl text-xs hover:bg-secondary/80 transition-all"
-            >
-              Continue Shopping
-            </button>
+              <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.42 9.864-9.852.002-2.63-1.023-5.101-2.883-6.963C16.593 1.97 14.12 .946 11.49 .946c-5.444 0-9.873 4.42-9.877 9.855-.001 1.77.461 3.5 1.392 5.053l-1.01 3.687 3.784-.992zm11.23-7.587c-.301-.15-1.785-.881-2.062-.982-.278-.1-.48-.15-.68.15-.2.3-.775.982-.95 1.183-.175.2-.35.225-.65.075-.3-.15-1.265-.467-2.41-1.485-.89-.795-1.49-1.77-1.665-2.07-.175-.3-.02-.463.13-.613.135-.135.301-.35.451-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.68-1.637-.93-2.237-.243-.587-.49-.507-.68-.517-.174-.01-.375-.012-.575-.012-.2 0-.525.075-.8.375-.275.3-1.05 1.025-1.05 2.5 0 1.475 1.075 2.9 1.225 3.1.15.2 2.11 3.22 5.115 4.525.715.31 1.27.495 1.704.63.72.23 1.375.197 1.895.12.58-.087 1.785-.73 2.035-1.432.25-.703.25-1.303.175-1.433-.075-.13-.275-.205-.575-.355z" />
+              </svg>
+              <span>Notify Seller on WhatsApp</span>
+            </a>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => router.push("/dashboard?tab=orders")}
+                className="flex-1 h-11 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:bg-primary/95 transition-all"
+              >
+                Track Order
+              </button>
+              <button
+                onClick={() => router.push("/catalog")}
+                className="flex-1 h-11 bg-secondary border text-foreground font-bold rounded-xl text-xs hover:bg-secondary/80 transition-all"
+              >
+                Continue Shopping
+              </button>
+            </div>
           </div>
         </div>
         <Footer />
@@ -195,7 +245,7 @@ export default function CheckoutPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Enter full name"
-                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                   />
                 </div>
 
@@ -207,7 +257,7 @@ export default function CheckoutPage() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="e.g. +94 77 123 4567"
-                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                   />
                 </div>
 
@@ -219,7 +269,7 @@ export default function CheckoutPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@domain.com"
-                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
                   />
                 </div>
 
@@ -231,25 +281,55 @@ export default function CheckoutPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Street, area and house number"
-                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-muted-foreground">City (Sri Lanka)</label>
+                  <input
+                    type="text"
+                    required
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Colombo / Jaffna"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-muted-foreground">District</label>
+                  <input
+                    type="text"
+                    required
+                    value={district}
+                    onChange={(e) => setDistrict(e.target.value)}
+                    placeholder="e.g. Colombo / Puttalam"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground font-semibold"
                   />
                 </div>
 
                 <div className="space-y-1 sm:col-span-2">
-                  <label className="text-xs font-bold text-muted-foreground">City (Sri Lanka)</label>
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary font-semibold"
-                  >
-                    <option value="Colombo">Colombo</option>
-                    <option value="Kandy">Kandy</option>
-                    <option value="Galle">Galle</option>
-                    <option value="Gampaha">Gampaha</option>
-                    <option value="Negombo">Negombo</option>
-                    <option value="Jaffna">Jaffna</option>
-                    <option value="Kurunegala">Kurunegala</option>
-                  </select>
+                  <label className="text-xs font-bold text-muted-foreground">Postal Code</label>
+                  <input
+                    type="text"
+                    required
+                    value={postalCode}
+                    onChange={(e) => setPostalCode(e.target.value)}
+                    placeholder="e.g. 00300"
+                    className="w-full h-10 px-4 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
+                  />
+                </div>
+
+                <div className="space-y-1 sm:col-span-2">
+                  <label className="text-xs font-bold text-muted-foreground">Order Notes (Optional)</label>
+                  <textarea
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Notes about your delivery, e.g. special instructions"
+                    className="w-full p-3 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/20 text-foreground"
+                  />
                 </div>
 
               </div>
@@ -278,7 +358,7 @@ export default function CheckoutPage() {
                     className="mt-1"
                   />
                   <div className="text-xs">
-                    <div className="font-bold flex items-center gap-1.5">
+                    <div className="font-bold flex items-center gap-1.5 text-foreground">
                       <Truck className="h-4 w-4 text-primary" />
                       <span>Cash On Delivery (COD)</span>
                     </div>
@@ -302,7 +382,7 @@ export default function CheckoutPage() {
                     className="mt-1"
                   />
                   <div className="text-xs">
-                    <div className="font-bold flex items-center gap-1.5">
+                    <div className="font-bold flex items-center gap-1.5 text-foreground">
                       <Building className="h-4 w-4 text-primary" />
                       <span>Bank Transfer</span>
                     </div>
@@ -329,7 +409,7 @@ export default function CheckoutPage() {
                       <img src={item.image_url} alt="" className="h-full w-full object-contain" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold truncate">{item.name}</div>
+                      <div className="font-bold truncate text-foreground">{item.name}</div>
                       <div className="text-[10px] text-muted-foreground">Qty: {item.quantity}</div>
                     </div>
                     <div className="font-black text-foreground shrink-0">
@@ -347,7 +427,7 @@ export default function CheckoutPage() {
               </div>
 
               <div className="flex justify-between items-baseline mb-6">
-                <span className="text-sm font-bold">Grand Total</span>
+                <span className="text-sm font-bold text-foreground">Grand Total</span>
                 <span className="text-xl font-black text-primary">
                   LKR {cartTotal.toLocaleString()}
                 </span>
@@ -362,7 +442,7 @@ export default function CheckoutPage() {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/95 shadow-lg shadow-primary/10 transition-all flex items-center justify-center text-xs"
+                className="w-full h-12 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/95 shadow-lg shadow-primary/10 transition-all flex items-center justify-center text-xs cursor-pointer"
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : `Place Order (LKR ${cartTotal.toLocaleString()})`}
               </button>

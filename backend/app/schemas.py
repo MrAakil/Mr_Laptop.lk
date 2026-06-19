@@ -115,36 +115,86 @@ class ProductResponse(ProductBase):
         from_attributes = True
 
 # --- Order Schemas ---
-class OrderItemSchema(BaseModel):
+class OrderItemCreate(BaseModel):
     product_id: int
-    name: str
     quantity: int
-    price: float
 
-class OrderCreate(BaseModel):
-    payment_method: str  # Cash on Delivery, Bank Transfer
-    shipping_address: str
-    phone: str
-    email: str
-    items: List[OrderItemSchema]
-
-class OrderUpdate(BaseModel):
-    status: str
-
-class OrderResponse(BaseModel):
+class OrderItemResponse(BaseModel):
     id: int
-    user_id: Optional[int]
+    order_id: int
+    product_id: Optional[int]
+    product_name: str
+    product_image: Optional[str]
+    unit_price: float
+    quantity: int
     total_price: float
-    status: str
-    payment_method: str
-    shipping_address: str
-    phone: str
-    email: str
-    items: List[OrderItemSchema]
-    created_at: datetime
 
     class Config:
         from_attributes = True
+
+class OrderCreate(BaseModel):
+    customer_name: str
+    customer_email: EmailStr
+    customer_phone: str
+    shipping_address: str
+    city: str
+    district: str
+    postal_code: str
+    notes: Optional[str] = None
+    payment_method: str  # Cash on Delivery, Bank Transfer
+    items: List[OrderItemCreate]
+
+class OrderUpdate(BaseModel):
+    order_status: Optional[str] = None
+    payment_status: Optional[str] = None
+    tracking_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class OrderResponse(BaseModel):
+    id: int
+    order_number: str
+    user_id: Optional[int]
+    customer_name: str
+    customer_email: str
+    customer_phone: str
+    shipping_address: str
+    city: str
+    district: str
+    postal_code: str
+    subtotal: float
+    shipping_fee: float
+    discount: float
+    total_amount: float
+    payment_method: str
+    payment_status: str
+    order_status: str
+    tracking_number: Optional[str]
+    notes: Optional[str]
+    invoice_number: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+    items: List[OrderItemResponse]
+
+    class Config:
+        from_attributes = True
+
+class AdminOrderStatsResponse(BaseModel):
+    total_orders: int
+    revenue: float
+    pending_orders: int
+    processing_orders: int
+    shipped_orders: int
+    delivered_orders: int
+    cancelled_orders: int
+    average_order_value: float
+
+class AdminOrderListResponse(BaseModel):
+    orders: List[OrderResponse]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
 
 # --- Analytics Schemas ---
 class AnalyticsResponse(BaseModel):
@@ -182,10 +232,12 @@ class AdminUserListItem(BaseModel):
 class AdminUserOrderItem(BaseModel):
     """Order row inside the user-detail drawer."""
     id: int
-    total_price: float
-    status: str
+    order_number: str
+    total_amount: float
+    order_status: str
+    payment_status: str
     payment_method: str
-    items: List[OrderItemSchema]
+    items: List[OrderItemResponse]
     created_at: datetime
 
     class Config:
