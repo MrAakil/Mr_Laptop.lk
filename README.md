@@ -14,15 +14,20 @@ A premium full-stack e-commerce platform for buying and selling new, used, and r
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Framework:** [Next.js](https://nextjs.org/) (App Router)
-- **Styling:** [Tailwind CSS](https://tailwindcss.com/) with custom Glassmorphism UI
-- **Icons:** Lucide React
-- **State Management:** React Context API (Auth, Cart, Wishlist, Compare, Theme)
+- **Framework:** [Next.js 16 (React 19)](https://nextjs.org/) (App Router)
+- **Language:** [TypeScript](https://www.typescriptlang.org/)
+- **Styling:** [Tailwind CSS v4](https://tailwindcss.com/) with PostCSS & custom glassmorphism design tokens
+- **Animations:** [Framer Motion](https://www.framer.com/motion/) for fluid page transitions & micro-interactions
+- **Icons:** [Lucide React](https://lucide.dev/)
+- **State Management:** React Context API (handling Auth, Cart, Wishlist, Compare, and Theme toggles)
 
 ### Backend
 - **Framework:** [FastAPI](https://fastapi.tiangolo.com/) (Python)
-- **Database:** SQLAlchemy (ORM)
-- **Server:** Uvicorn
+- **Web Server:** [Uvicorn](https://www.uvicorn.org/) (with auto-reload watcher)
+- **Database ORM:** [SQLAlchemy 2.0](https://www.sqlalchemy.org/) (supporting SQLite locally & PostgreSQL dynamically)
+- **Validation & Settings:** [Pydantic v2](https://docs.pydantic.dev/) & [pydantic-settings](https://docs.pydantic.dev/latest/concepts/pydantic_settings/) for automated `.env` file parsing
+- **Authentication:** JWT (JSON Web Tokens via `python-jose`) and `bcrypt` password hashing
+- **Email Integration:** [Resend API](https://resend.com/) (powered by `httpx` HTTP Client) with SMTP server fallback relay
 
 ## 📂 Project Structure
 
