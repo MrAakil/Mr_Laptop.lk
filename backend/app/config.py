@@ -24,7 +24,7 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USER: Optional[str] = ""
     SMTP_PASSWORD: Optional[str] = ""
-    SMTP_FROM: str = "mrlaptopsales@gmail.com"
+    SMTP_FROM: str = "aakilmohammed213@gmail.com"
     
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
