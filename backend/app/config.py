@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SMTP_FROM: str = os.getenv("SMTP_FROM", "mrlaptopsales@gmail.com")
     
     class Config:
+        env_file = ".env"
         case_sensitive = True
 
 settings = Settings()
