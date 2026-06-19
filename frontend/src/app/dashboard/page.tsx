@@ -89,6 +89,13 @@ function DashboardContent() {
     }
   }, [activeTab, token, user]);
 
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!authLoading && !user) {
+      router.push("/auth/login");
+    }
+  }, [user, authLoading, router]);
+
   const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileMessage("");
@@ -177,7 +184,7 @@ function DashboardContent() {
     );
   };
 
-  if (authLoading) {
+  if (authLoading || !user) {
     return (
       <div className="flex flex-col min-h-screen">
         <Navbar />
@@ -187,11 +194,6 @@ function DashboardContent() {
         <Footer />
       </div>
     );
-  }
-
-  if (!user) {
-    router.push("/auth/login");
-    return null;
   }
 
   return (
