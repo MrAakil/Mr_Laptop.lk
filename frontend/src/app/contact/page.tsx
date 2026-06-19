@@ -4,7 +4,8 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { Mail, Phone, MapPin, Clock, MessageSquare, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Clock, MessageSquare, Send, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { API_URL } from "@/context/AuthContext";
 
 function ContactForm() {
   const searchParams = useSearchParams();
@@ -15,6 +16,8 @@ function ContactForm() {
   const [service, setService] = useState(searchParams.get("service") || "general");
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
     const defaultService = searchParams.get("service");
@@ -23,14 +26,45 @@ function ContactForm() {
     }
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccess(true);
-    setName("");
-    setEmail("");
-    setPhone("");
-    setMessage("");
-    setTimeout(() => setSuccess(false), 5000);
+    setSuccess(false);
+    setErrorMsg("");
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}/contact`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          service,
+          message,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess(true);
+        setName("");
+        setEmail("");
+        setPhone("");
+        setMessage("");
+        setService("general");
+        setTimeout(() => setSuccess(false), 5000);
+      } else {
+        const data = await response.json();
+        setErrorMsg(data.detail || "Failed to submit inquiry. Please try again.");
+      }
+    } catch (err) {
+      console.error("Submit inquiry failed", err);
+      setErrorMsg("Network error. Failed to connect to server.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -113,11 +147,28 @@ function ContactForm() {
 
             <button
               type="submit"
-              className="w-full h-11 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:bg-primary/95 transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/10 hover:shadow-lg"
+              disabled={loading}
+              className="w-full h-11 bg-primary text-primary-foreground font-bold rounded-xl text-xs hover:bg-primary/95 transition-all flex items-center justify-center gap-2 shadow-md shadow-primary/10 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Send className="h-4 w-4" />
-              <span>Submit Inquiry</span>
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Sending Inquiry...</span>
+                </>
+              ) : (
+                <>
+                  <Send className="h-4 w-4" />
+                  <span>Submit Inquiry</span>
+                </>
+              )}
             </button>
+
+            {errorMsg && (
+              <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-500 font-semibold flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
 
             {success && (
               <div className="p-3.5 rounded-xl bg-green-500/10 border border-green-500/20 text-xs text-green-500 font-semibold flex items-center gap-2">
@@ -142,7 +193,7 @@ function ContactForm() {
               <MapPin className="h-6 w-6 text-primary shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-foreground">Visit Retail Store</div>
-                <div className="text-xs text-muted-foreground mt-0.5">123 Galle Road, Colombo 03, Sri Lanka</div>
+                <div className="text-xs text-muted-foreground mt-0.5">99/A, Kalpitiya Road, Thanneerkuda, Ettalai, Puttalam, Sri Lanka</div>
               </div>
             </li>
 
@@ -150,7 +201,7 @@ function ContactForm() {
               <Phone className="h-6 w-6 text-primary shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-foreground">Phone Support Lines</div>
-                <div className="text-xs text-muted-foreground mt-0.5">+94 77 123 4567 (Sales/Repairs)</div>
+                <div className="text-xs text-muted-foreground mt-0.5">+94 78 978 8848</div>
               </div>
             </li>
 
@@ -158,7 +209,7 @@ function ContactForm() {
               <Mail className="h-6 w-6 text-primary shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-foreground">Support Email</div>
-                <div className="text-xs text-muted-foreground mt-0.5">sales@mrlaptop.lk</div>
+                <div className="text-xs text-muted-foreground mt-0.5">mrlaptopsales@gmail.com</div>
               </div>
             </li>
 
@@ -181,7 +232,7 @@ function ContactForm() {
           <div className="relative z-10 text-center space-y-1">
             <MapPin className="h-7 w-7 text-primary mx-auto mb-2 animate-bounce" />
             <div className="text-xs font-black text-foreground">Mr_Laptop.lk Store Location</div>
-            <div className="text-[10px] text-muted-foreground">Colombo 03 (Colpetty), Sri Lanka</div>
+            <div className="text-[10px] text-muted-foreground">Puttalam, Sri Lanka</div>
           </div>
         </div>
 
@@ -203,7 +254,7 @@ export default function ContactPage() {
             Contact Mr_Laptop.lk
           </h1>
           <p className="text-sm sm:text-base text-muted-foreground">
-            Have questions about pricing, warranty coverage, trade-in valuations, or laptop repairs? Reach out to our Colombo team.
+            Have questions about pricing, warranty coverage, trade-in valuations, or laptop repairs? Reach out to our Puttalam team.
           </p>
         </div>
 

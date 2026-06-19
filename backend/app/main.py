@@ -4,7 +4,7 @@ import uvicorn
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, products, orders, analytics, admin_users
+from app.routers import auth, products, orders, analytics, admin_users, contact
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
@@ -40,6 +40,7 @@ app.include_router(products.router, prefix="/api")
 app.include_router(orders.router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")
+app.include_router(contact.router, prefix="/api")
 
 @app.get("/")
 def read_root():

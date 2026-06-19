@@ -244,3 +244,12 @@ class AdminUserListResponse(BaseModel):
     per_page: int
     total_pages: int
 
+
+class ContactInquiry(BaseModel):
+    name: str = Field(..., min_length=1)
+    email: EmailStr
+    phone: str = Field(..., min_length=1)
+    service: str = Field(..., min_length=1)
+    message: str = Field(..., min_length=1)
+
+
