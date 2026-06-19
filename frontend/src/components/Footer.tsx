@@ -64,7 +64,7 @@ export const Footer: React.FC = () => {
       {/* Main Footer links and newsletter */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
-          
+
           {/* Logo & Description */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2 group mb-4">
@@ -157,15 +157,15 @@ export const Footer: React.FC = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-2.5 text-muted-foreground">
                 <MapPin className="h-5 w-5 text-primary shrink-0" />
-                <span>123 Galle Road, Colombo 03, Sri Lanka</span>
+                <span>99/A, Kalpitiya Road, Thanneerkuda, Ettalai, Puttalam, Sri Lanka</span>
               </li>
               <li className="flex items-center gap-2.5 text-muted-foreground">
                 <Phone className="h-4 w-4 text-primary shrink-0" />
-                <span>+94 77 123 4567</span>
+                <span>+94 78 978 8848</span>
               </li>
               <li className="flex items-center gap-2.5 text-muted-foreground">
                 <Mail className="h-4 w-4 text-primary shrink-0" />
-                <span>sales@mrlaptop.lk</span>
+                <span>aakilmohammed213@gmail.com</span>
               </li>
             </ul>
           </div>

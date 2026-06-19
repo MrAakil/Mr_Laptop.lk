@@ -69,7 +69,7 @@ function ContactForm() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-      
+
       {/* 1. Contact Form: 7 cols */}
       <div className="lg:col-span-7">
         <div className="p-6 sm:p-8 rounded-3xl border border-glass-border bg-card shadow-lg">
@@ -80,7 +80,7 @@ function ContactForm() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              
+
               <div className="space-y-1">
                 <label className="text-xs font-bold text-muted-foreground">Your Name</label>
                 <input
@@ -183,11 +183,11 @@ function ContactForm() {
 
       {/* 2. Store details: 5 cols */}
       <div className="lg:col-span-5 space-y-6">
-        
+
         {/* Support Card */}
         <div className="p-6 rounded-3xl border border-glass-border bg-card">
           <h3 className="text-sm font-bold uppercase tracking-wider mb-6">Contact Channels</h3>
-          
+
           <ul className="space-y-5">
             <li className="flex items-start gap-3.5 text-sm">
               <MapPin className="h-6 w-6 text-primary shrink-0 mt-0.5" />
@@ -209,7 +209,7 @@ function ContactForm() {
               <Mail className="h-6 w-6 text-primary shrink-0 mt-0.5" />
               <div>
                 <div className="font-bold text-foreground">Support Email</div>
-                <div className="text-xs text-muted-foreground mt-0.5">mrlaptopsales@gmail.com</div>
+                <div className="text-xs text-muted-foreground mt-0.5">aakilmohammed213@gmail.com</div>
               </div>
             </li>
 
@@ -248,7 +248,7 @@ export default function ContactPage() {
       <Navbar />
 
       <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-16">
-        
+
         <div className="max-w-3xl mx-auto text-center mb-16 space-y-4">
           <h1 className="text-3xl sm:text-5xl font-black text-foreground uppercase tracking-tight">
             Contact Mr_Laptop.lk
