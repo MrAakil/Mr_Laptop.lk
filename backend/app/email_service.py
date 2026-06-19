@@ -12,6 +12,11 @@ def send_contact_email(inquiry: ContactInquiry) -> bool:
     """
     Sends contact form inquiry via Resend API (HTTP POST) or SMTP fallback.
     """
+    logger.info(f"RESEND_API_KEY Loaded: {bool(settings.RESEND_API_KEY)}")
+    logger.info(f"RESEND_API_KEY Length: {len(settings.RESEND_API_KEY or '')}")
+    logger.info(f"SMTP_USER Loaded: {bool(settings.SMTP_USER)}")
+    logger.info(f"SMTP_PASSWORD Loaded: {bool(settings.SMTP_PASSWORD)}")
+
     subject = "New Contact Inquiry - Mr_Laptop.lk"
     
     html_content = f"""
@@ -84,9 +89,16 @@ def send_contact_email(inquiry: ContactInquiry) -> bool:
                 logger.info("Email sent successfully via Resend API.")
                 return True
             else:
-                logger.error(f"Resend API error response (Status {response.status_code}): {response.text}")
-        except Exception:
-            logger.exception("Resend API request exception, falling back to SMTP.")
+                err_msg = f"Resend API error response (Status {response.status_code}): {response.text}"
+                logger.error(err_msg)
+                if not (settings.SMTP_USER and settings.SMTP_PASSWORD):
+                    raise ValueError(err_msg)
+        except Exception as e:
+            logger.exception("Resend API request exception.")
+            if not (settings.SMTP_USER and settings.SMTP_PASSWORD):
+                if isinstance(e, ValueError):
+                    raise
+                raise ValueError(f"Resend API dispatch failed: {e}") from e
 
     # 2. Try SMTP Fallback if credentials configured
     if settings.SMTP_USER and settings.SMTP_PASSWORD:
