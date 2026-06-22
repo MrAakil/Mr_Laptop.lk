@@ -6,31 +6,83 @@ import { useCompare } from "@/context/CompareContext";
 import { useCart } from "@/context/CartContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { GitCompare, ShoppingCart, Trash2, ArrowLeft, Star } from "lucide-react";
+import { GitCompare, ShoppingCart, Trash2, ArrowLeft, Star, Cpu, Sliders, Battery, Monitor, Scale } from "lucide-react";
 
 export default function ComparePage() {
   const { compareList, toggleCompare, clearCompare } = useCompare();
   const { addToCart } = useCart();
 
+  // Performance calculation helpers
+  const getCpuPerformance = (cpu: string) => {
+    const text = cpu.toLowerCase();
+    if (text.includes("i9") || text.includes("m3 max") || text.includes("ultra 9")) return { pct: 96, label: "Extreme Processing" };
+    if (text.includes("i7") || text.includes("m3 pro") || text.includes("m2 pro") || text.includes("ryzen 7")) return { pct: 82, label: "High Performance" };
+    if (text.includes("i5") || text.includes("m3") || text.includes("m2") || text.includes("ryzen 5")) return { pct: 65, label: "Balanced Creator" };
+    return { pct: 45, label: "Daily Tasks Efficiency" };
+  };
+
+  const getRamPerformance = (ram: string) => {
+    const text = ram.toLowerCase();
+    if (text.includes("64gb")) return { pct: 98, label: "Extreme Multitasking" };
+    if (text.includes("32gb")) return { pct: 88, label: "Pro Production" };
+    if (text.includes("16gb")) return { pct: 70, label: "Standard Workloads" };
+    return { pct: 45, label: "Basic Computing" };
+  };
+
+  const getGpuPerformance = (gpu: string) => {
+    const text = gpu.toLowerCase();
+    if (text.includes("rtx 4090") || text.includes("rtx 4080")) return { pct: 98, label: "Tier-1 Raytracing" };
+    if (text.includes("rtx 4070") || text.includes("rtx 4060")) return { pct: 85, label: "High-FPS Gaming" };
+    if (text.includes("rtx 4050") || text.includes("rtx 3050") || text.includes("arc")) return { pct: 68, label: "Rendering Ready" };
+    if (text.includes("m3") || text.includes("m2") || text.includes("m1") || text.includes("intel") || text.includes("amd")) return { pct: 50, label: "Casual & Coding" };
+    return { pct: 30, label: "Basic Output" };
+  };
+
+  const getStoragePerformance = (storage: string) => {
+    const text = storage.toLowerCase();
+    if (text.includes("2tb")) return { pct: 95, label: "Massive Library" };
+    if (text.includes("1tb")) return { pct: 75, label: "Pro Capacity" };
+    if (text.includes("512gb")) return { pct: 50, label: "Standard Setup" };
+    return { pct: 30, label: "Compact Storage" };
+  };
+
+  const getBatteryPerformance = (brand: string, specs: any) => {
+    const text = brand.toLowerCase();
+    // MacBooks have extreme battery life
+    if (text.includes("apple") || text.includes("macbook")) return { pct: 95, label: "Up to 18 Hours" };
+    if (specs.cpu.toLowerCase().includes("hx") || specs.gpu.toLowerCase().includes("rtx 4080")) return { pct: 48, label: "Gaming Focus (4-6 Hours)" };
+    return { pct: 72, label: "Standard (8-10 Hours)" };
+  };
+
+  const getWeightPerformance = (specs: any) => {
+    const name = specs.display.toLowerCase();
+    if (name.includes("13") || name.includes("14")) return { pct: 92, label: "Ultra Portable (< 1.4kg)" };
+    if (name.includes("15")) return { pct: 75, label: "Standard (1.8kg)" };
+    return { pct: 50, label: "Heavy Rig (> 2.3kg)" };
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
         
-        {/* Title */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        {/* Title Block */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
           <div>
-            <h1 className="text-2xl sm:text-4xl font-black text-foreground uppercase tracking-tight">Compare Laptops</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Compare up to 3 devices side-by-side to make the right choice
+            <h1 className="text-2xl sm:text-4xl font-black text-foreground uppercase tracking-tight flex items-center gap-2">
+              <GitCompare className="h-8 w-8 text-primary glow-text-cyan animate-pulse" />
+              <span>Futuristic Compare</span>
+            </h1>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Inspect benchmark ratings, specifications, and capabilities side-by-side.
             </p>
           </div>
           
           {compareList.length > 0 && (
             <button
               onClick={clearCompare}
-              className="self-start text-xs font-bold text-red-500 hover:text-red-600 transition-colors"
+              className="self-start text-xs font-bold text-red-400 hover:text-red-500 transition-colors uppercase tracking-wider"
             >
               Clear Comparison List
             </button>
@@ -38,36 +90,36 @@ export default function ComparePage() {
         </div>
 
         {compareList.length > 0 ? (
-          <div className="overflow-x-auto rounded-3xl border border-glass-border bg-card/40 backdrop-blur-md">
-            <table className="w-full text-left text-xs border-collapse min-w-[600px]">
+          <div className="overflow-x-auto rounded-3xl border border-glass-border glass shadow-2xl">
+            <table className="w-full text-left text-xs border-collapse min-w-[700px]">
               <thead>
-                <tr className="border-b border-border/40 bg-secondary/15">
-                  <th className="px-6 py-5 font-bold text-muted-foreground w-1/4">Specification</th>
+                <tr className="border-b border-border bg-secondary/20">
+                  <th className="px-6 py-6 font-black text-muted-foreground/80 w-1/4 uppercase tracking-widest text-[10px]">Technical Metric</th>
                   {compareList.map((product) => (
-                    <th key={product.id} className="px-6 py-5 font-black text-sm relative w-1/4">
+                    <th key={product.id} className="px-6 py-6 font-black text-sm relative w-1/4 group/header">
                       <button
                         onClick={() => toggleCompare(product)}
-                        className="absolute top-2 right-2 p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-secondary transition-all"
+                        className="absolute top-3 right-3 p-1.5 rounded-xl text-muted-foreground/80 hover:text-red-500 hover:bg-secondary/80 transition-all border border-border"
                         title="Remove"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
-                      <div className="h-24 flex items-center justify-center p-2 mb-4 bg-white rounded-2xl border border-border/40">
+                      <div className="h-28 flex items-center justify-center p-4 mb-4 bg-white/5 rounded-2xl border border-border/40 hover:border-primary/40 transition-colors">
                         <img
                           src={product.image_urls[0]}
                           alt={product.name}
-                          className="h-full object-contain"
+                          className="h-full object-contain filter drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)] group-hover/header:scale-105 transition-transform duration-300"
                         />
                       </div>
-                      <div className="truncate max-w-[180px] text-foreground">{product.name}</div>
+                      <div className="truncate max-w-[200px] text-foreground font-black text-xs uppercase tracking-tight">{product.name}</div>
                     </th>
                   ))}
-                  {/* Fill empty comparison columns to maintain 4 column layout */}
+                  {/* Fill empty column spaces */}
                   {[...Array(3 - compareList.length)].map((_, i) => (
-                    <th key={i} className="px-6 py-5 text-center text-muted-foreground font-medium w-1/4">
-                      <div className="h-32 flex flex-col items-center justify-center border border-dashed border-border rounded-2xl bg-secondary/5">
+                    <th key={i} className="px-6 py-6 text-center text-muted-foreground w-1/4">
+                      <div className="h-36 flex flex-col items-center justify-center border border-dashed border-border rounded-3xl bg-secondary/5">
                         <GitCompare className="h-6 w-6 mb-2 text-border" />
-                        <Link href="/catalog" className="text-[10px] font-bold text-primary hover:underline">
+                        <Link href="/catalog" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">
                           + Add Laptop
                         </Link>
                       </div>
@@ -77,94 +129,179 @@ export default function ComparePage() {
               </thead>
               <tbody>
                 {/* Brand */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Brand</td>
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">Brand</td>
                   {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4 font-semibold">{p.brand}</td>
+                    <td key={p.id} className="px-6 py-4 font-bold text-foreground">{p.brand}</td>
                   ))}
                   {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
                 </tr>
 
                 {/* Condition */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Condition</td>
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">Condition</td>
                   {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4 font-semibold uppercase text-xs">{p.condition}</td>
+                    <td key={p.id} className="px-6 py-4">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
+                        p.condition === "New" 
+                          ? "bg-green-500/10 text-green-400" 
+                          : p.condition === "Refurbished" 
+                          ? "bg-blue-500/10 text-blue-400" 
+                          : "bg-amber-500/10 text-amber-400"
+                      }`}>
+                        {p.condition}
+                      </span>
+                    </td>
                   ))}
                   {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
                 </tr>
 
                 {/* Price */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Price (LKR)</td>
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">Price (LKR)</td>
                   {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4 font-bold text-primary">
+                    <td key={p.id} className="px-6 py-4 font-black text-primary text-sm glow-text-cyan">
                       LKR {(p.price * (1 - p.discount / 100)).toLocaleString()}
                     </td>
                   ))}
                   {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
                 </tr>
 
-                {/* CPU */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">CPU Processor</td>
+                {/* CPU Processor + Benchmark */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">
+                    <div className="flex items-center gap-1.5"><Cpu className="h-3.5 w-3.5 text-accent" /> CPU / Processor</div>
+                  </td>
+                  {compareList.map((p) => {
+                    const perf = getCpuPerformance(p.specs.cpu);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{p.specs.cpu}</div>
+                        {/* Gauge bar */}
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary to-accent h-1 rounded-full glow-cyan" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                        <span className="text-[9px] font-bold text-accent/80 mt-1 block uppercase tracking-wider">{perf.label}</span>
+                      </td>
+                    );
+                  })}
+                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
+                </tr>
+
+                {/* RAM memory + Benchmark */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">
+                    <div className="flex items-center gap-1.5"><Sliders className="h-3.5 w-3.5 text-accent" /> Memory (RAM)</div>
+                  </td>
+                  {compareList.map((p) => {
+                    const perf = getRamPerformance(p.specs.ram);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{p.specs.ram}</div>
+                        {/* Gauge bar */}
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary to-accent h-1 rounded-full glow-cyan" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                        <span className="text-[9px] font-bold text-accent/80 mt-1 block uppercase tracking-wider">{perf.label}</span>
+                      </td>
+                    );
+                  })}
+                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
+                </tr>
+
+                {/* Storage SSD + Benchmark */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">SSD Storage Capacity</td>
+                  {compareList.map((p) => {
+                    const perf = getStoragePerformance(p.specs.storage);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{p.specs.storage}</div>
+                        {/* Gauge bar */}
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary to-accent h-1 rounded-full glow-cyan" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                        <span className="text-[9px] font-bold text-accent/80 mt-1 block uppercase tracking-wider">{perf.label}</span>
+                      </td>
+                    );
+                  })}
+                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
+                </tr>
+
+                {/* GPU Graphics + Benchmark */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">GPU / Graphics</td>
+                  {compareList.map((p) => {
+                    const perf = getGpuPerformance(p.specs.gpu);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{p.specs.gpu}</div>
+                        {/* Gauge bar */}
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary to-accent h-1 rounded-full glow-cyan" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                        <span className="text-[9px] font-bold text-accent/80 mt-1 block uppercase tracking-wider">{perf.label}</span>
+                      </td>
+                    );
+                  })}
+                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
+                </tr>
+
+                {/* Battery Capability */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">
+                    <div className="flex items-center gap-1.5"><Battery className="h-3.5 w-3.5 text-accent" /> Battery Capacity</div>
+                  </td>
+                  {compareList.map((p) => {
+                    const perf = getBatteryPerformance(p.brand, p.specs);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{perf.label}</div>
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-emerald-500 to-green-400 h-1 rounded-full" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                      </td>
+                    );
+                  })}
+                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
+                </tr>
+
+                {/* Display/Screen */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">
+                    <div className="flex items-center gap-1.5"><Monitor className="h-3.5 w-3.5 text-accent" /> Display panel</div>
+                  </td>
                   {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.cpu}</td>
+                    <td key={p.id} className="px-6 py-5 font-medium text-foreground">{p.specs.display}</td>
                   ))}
                   {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
                 </tr>
 
-                {/* RAM */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">RAM memory</td>
-                  {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.ram}</td>
-                  ))}
-                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
-                </tr>
-
-                {/* Storage */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Storage SSD</td>
-                  {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.storage}</td>
-                  ))}
-                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
-                </tr>
-
-                {/* GPU */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Graphics (GPU)</td>
-                  {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.gpu}</td>
-                  ))}
-                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
-                </tr>
-
-                {/* Display */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Display Details</td>
-                  {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.display}</td>
-                  ))}
-                  {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
-                </tr>
-
-                {/* OS */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Operating System</td>
-                  {compareList.map((p) => (
-                    <td key={p.id} className="px-6 py-4">{p.specs.os}</td>
-                  ))}
+                {/* Weight/Portability */}
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-5 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">
+                    <div className="flex items-center gap-1.5"><Scale className="h-3.5 w-3.5 text-accent" /> Portability Index</div>
+                  </td>
+                  {compareList.map((p) => {
+                    const perf = getWeightPerformance(p.specs);
+                    return (
+                      <td key={p.id} className="px-6 py-5">
+                        <div className="font-semibold text-foreground">{perf.label}</div>
+                        <div className="mt-2 w-full bg-secondary/60 rounded-full h-1 overflow-hidden">
+                          <div className="bg-gradient-to-r from-primary to-accent h-1 rounded-full glow-cyan" style={{ width: `${perf.pct}%` }} />
+                        </div>
+                      </td>
+                    );
+                  })}
                   {[...Array(3 - compareList.length)].map((_, i) => <td key={i} className="bg-secondary/5" />)}
                 </tr>
 
                 {/* Rating */}
-                <tr className="border-b border-border/40">
-                  <td className="px-6 py-4 font-bold text-muted-foreground bg-secondary/20">Rating</td>
+                <tr className="border-b border-border hover:bg-white/5 transition-colors">
+                  <td className="px-6 py-4 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">Rating</td>
                   {compareList.map((p) => (
                     <td key={p.id} className="px-6 py-4 font-bold flex items-center gap-1 text-amber-500">
-                      <Star className="h-4 w-4 fill-current" />
+                      <Star className="h-4 w-4 fill-current animate-spin-slow" />
                       <span>{p.rating.toFixed(1)}</span>
                     </td>
                   ))}
@@ -173,15 +310,15 @@ export default function ComparePage() {
 
                 {/* Cart Action button */}
                 <tr>
-                  <td className="px-6 py-5 font-bold text-muted-foreground bg-secondary/20">Purchase</td>
+                  <td className="px-6 py-6 font-black text-muted-foreground uppercase tracking-wider text-[10px] bg-secondary/10">Purchase Action</td>
                   {compareList.map((product) => (
-                    <td key={product.id} className="px-6 py-5">
+                    <td key={product.id} className="px-6 py-6">
                       <button
                         onClick={() => addToCart(product, 1)}
                         disabled={product.stock <= 0}
-                        className="w-full h-9 rounded-lg bg-primary text-primary-foreground font-bold hover:bg-primary/95 text-[10px] flex items-center justify-center gap-1 hover:shadow"
+                        className="w-full h-10 rounded-xl bg-primary text-primary-foreground font-black hover:bg-primary/95 text-[10px] uppercase tracking-widest flex items-center justify-center gap-1.5 hover:shadow-lg hover:-translate-y-0.5 transition-all"
                       >
-                        <ShoppingCart className="h-3.5 w-3.5" />
+                        <ShoppingCart className="h-4 w-4" />
                         <span>Add To Cart</span>
                       </button>
                     </td>
@@ -192,9 +329,9 @@ export default function ComparePage() {
             </table>
           </div>
         ) : (
-          <div className="text-center py-20 border border-dashed border-border rounded-3xl bg-secondary/15 max-w-md mx-auto">
+          <div className="text-center py-20 border border-dashed border-border rounded-3xl glass max-w-md mx-auto">
             <div className="mx-auto w-12 h-12 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mb-4">
-              <GitCompare className="h-6 w-6" />
+              <GitCompare className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-base font-bold text-foreground mb-1">No laptops selected for comparison</h3>
             <p className="text-xs text-muted-foreground mb-6">

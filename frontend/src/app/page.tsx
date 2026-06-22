@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
+import { ThreeLaptop } from "@/components/ThreeLaptop";
 import { apiFetch } from "@/utils/api";
 import { CategoryCard } from "@/components/CategoryCard";
 import {
@@ -140,9 +141,10 @@ export default function Home() {
 
       <main className="flex-grow">
         {/* 1. Hero Section */}
-        <section className="relative overflow-hidden py-20 lg:py-32 bg-gradient-to-b from-background via-secondary/10 to-background">
-          {/* Subtle geometric glowing grid elements in background */}
-          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] pointer-events-none dark:block hidden" />
+        <section className="relative overflow-hidden py-20 lg:py-32 bg-grid-cyber">
+          {/* Neon glowing ambient flares */}
+          <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] bg-primary/20 rounded-full blur-[80px] pointer-events-none animate-pulse-light" />
+          <div className="absolute bottom-[10%] right-[-10%] w-[450px] h-[450px] bg-accent/15 rounded-full blur-[100px] pointer-events-none animate-pulse-light" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -154,7 +156,7 @@ export default function Home() {
                 </div>
                 <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-foreground leading-[1.05] mb-6">
                   Find Your <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-accent to-purple-500">
                     Perfect Laptop
                   </span>
                 </h1>
@@ -170,30 +172,27 @@ export default function Home() {
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
-                    href="/contact?service=tradeins"
+                    href="/compare"
                     className="w-full sm:w-auto h-12 px-8 rounded-full bg-secondary text-foreground border border-border font-bold hover:bg-secondary/80 transition-all flex items-center justify-center"
                   >
-                    Sell Your Laptop
+                    Compare Laptops
                   </Link>
                 </div>
               </div>
 
-              {/* Showcase laptop image */}
+              {/* Showcase laptop 3D WebGL Canvas */}
               <div className="lg:col-span-5 relative flex justify-center">
-                <div className="relative w-full max-w-sm sm:max-w-md animate-float">
-                  <img
-                    src="https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=600&auto=format&fit=crop"
-                    alt="Premium Laptop Showcase"
-                    className="w-full h-auto object-contain drop-shadow-[0_20px_50px_rgba(59,130,246,0.3)] dark:drop-shadow-[0_20px_50px_rgba(59,130,246,0.15)]"
-                  />
+                <div className="relative w-full max-w-sm sm:max-w-md">
+                  <ThreeLaptop />
+                  
                   {/* Floating floating indicators */}
-                  <div className="absolute top-10 -left-6 rounded-2xl glass p-3 border border-white/20 shadow-xl flex items-center gap-2">
-                    <CheckCircle2 className="text-green-500 h-5 w-5" />
-                    <span className="text-xs font-bold">100% Tested</span>
+                  <div className="absolute top-10 -left-6 rounded-2xl glass p-3 border border-white/10 shadow-2xl flex items-center gap-2 backdrop-blur-md">
+                    <CheckCircle2 className="text-green-400 h-5 w-5" />
+                    <span className="text-xs font-bold text-foreground">100% Tested</span>
                   </div>
-                  <div className="absolute bottom-10 -right-6 rounded-2xl glass p-3 border border-white/20 shadow-xl flex items-center gap-2">
+                  <div className="absolute bottom-10 -right-6 rounded-2xl glass p-3 border border-white/10 shadow-2xl flex items-center gap-2 backdrop-blur-md">
                     <ShieldCheck className="text-primary h-5 w-5" />
-                    <span className="text-xs font-bold">Warranty Included</span>
+                    <span className="text-xs font-bold text-foreground">Warranty Included</span>
                   </div>
                 </div>
               </div>
