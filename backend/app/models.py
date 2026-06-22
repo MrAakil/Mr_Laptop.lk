@@ -26,6 +26,10 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     last_login = Column(DateTime, nullable=True)
 
+    @property
+    def is_admin(self) -> bool:
+        return self.role == "admin"
+
     # Relationships
     orders = relationship("Order", back_populates="user", cascade="all, delete-orphan")
     reviews = relationship("Review", back_populates="user", cascade="all, delete-orphan")

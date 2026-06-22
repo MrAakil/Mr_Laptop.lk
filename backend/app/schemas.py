@@ -48,6 +48,7 @@ class ForgotPasswordRequest(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
+    is_admin: bool
     created_at: datetime
 
     class Config:
