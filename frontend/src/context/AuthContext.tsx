@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useEffectEvent } from "react";
+import { API_URL, getApiUrl, apiFetch } from "@/utils/api";
 
 export interface User {
   id: number;
@@ -75,8 +76,7 @@ export class ApiRequestError extends Error {
   }
 }
 
-const DEFAULT_API_URL = "http://localhost:8000/api";
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL || DEFAULT_API_URL).replace(/\/$/, "");
+export { API_URL } from "@/utils/api";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -165,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfile = async (authToken: string) => {
     try {
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await apiFetch("/auth/me", {
         headers: {
           Authorization: `Bearer ${authToken}`,
         },
@@ -211,7 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("API_URL:", API_URL);
       console.log("requestBody (params):", params.toString());
 
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await apiFetch("/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
@@ -245,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     phone?: string,
     address?: string
   ): Promise<boolean> => {
-    const registerUrl = `${API_URL}/auth/register`;
+    const registerUrl = getApiUrl("/auth/register");
     const body = JSON.stringify({
       email,
       full_name: name,
@@ -259,7 +259,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("REGISTER URL:", registerUrl);
       console.log("REGISTER BODY:", body);
 
-      const response = await fetch(registerUrl, {
+      const response = await apiFetch("/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

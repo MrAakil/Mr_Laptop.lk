@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { apiFetch } from "@/utils/api";
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { useCompare } from "@/context/CompareContext";
@@ -58,7 +59,7 @@ export const Navbar: React.FC = () => {
     }
     const delayDebounceFn = setTimeout(async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/products?search=${searchQuery}&limit=5`);
+        const res = await apiFetch(`/products?search=${searchQuery}&limit=5`);
         if (res.ok) {
           const data = await res.json();
           setSuggestions(data);

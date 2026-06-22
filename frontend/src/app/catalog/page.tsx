@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
+import { apiFetch } from "@/utils/api";
 import { Search, SlidersHorizontal, ArrowUpDown, X, Loader2 } from "lucide-react";
 
 const BRANDS = ["Apple", "Dell", "HP", "Lenovo", "Asus", "Acer", "MSI", "Razer"];
@@ -65,7 +66,7 @@ function CatalogContent() {
         if (selectedCpu) queryParams.append("processor", selectedCpu);
         queryParams.append("sort", sortOption);
 
-        const res = await fetch(`http://localhost:8000/api/products?${queryParams.toString()}`);
+        const res = await apiFetch(`/products?${queryParams.toString()}`);
         if (res.ok) {
           const data = await res.json();
           setProducts(data);

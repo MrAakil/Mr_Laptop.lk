@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
+import { apiFetch } from "@/utils/api";
 import { CategoryCard } from "@/components/CategoryCard";
 import {
   Gamepad2,
@@ -109,7 +110,7 @@ export default function Home() {
   useEffect(() => {
     async function fetchFeatured() {
       try {
-        const res = await fetch("http://localhost:8000/api/products?limit=8");
+        const res = await apiFetch("/products?limit=8");
         if (res.ok) {
           const data = await res.json();
           setProducts(data);

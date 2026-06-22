@@ -1,4 +1,5 @@
 import { MetadataRoute } from 'next';
+import { apiFetch } from '@/utils/api';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://mrlaptop.lk';
@@ -21,7 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Dynamic Product details routes
   let productRoutes: any[] = [];
   try {
-    const res = await fetch('http://localhost:8000/api/products?limit=100');
+    const res = await apiFetch('/products?limit=100');
     if (res.ok) {
       const products = await res.json();
       productRoutes = products.map((p: any) => ({
