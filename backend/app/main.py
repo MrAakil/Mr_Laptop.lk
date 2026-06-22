@@ -13,7 +13,12 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description="Backend API for Mr_Laptop.lk - Sri Lankan Tech E-commerce Platform",
     version="1.0.0"
+
+    
 )
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
 
 # Setup CORS
 origins = [
