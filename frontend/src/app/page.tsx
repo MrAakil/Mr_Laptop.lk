@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ProductCard } from "@/components/ProductCard";
-import { ThreeLaptop } from "@/components/ThreeLaptop";
+import { HeroLaptop } from "@/components/HeroLaptop";
 import { apiFetch } from "@/utils/api";
 import { CategoryCard } from "@/components/CategoryCard";
 import {
@@ -183,7 +183,7 @@ export default function Home() {
               {/* Showcase laptop 3D WebGL Canvas */}
               <div className="lg:col-span-5 relative flex justify-center">
                 <div className="relative w-full max-w-sm sm:max-w-md">
-                  <ThreeLaptop />
+                  <HeroLaptop />
                   
                   {/* Floating floating indicators */}
                   <div className="absolute top-10 -left-6 rounded-2xl glass p-3 border border-white/10 shadow-2xl flex items-center gap-2 backdrop-blur-md">

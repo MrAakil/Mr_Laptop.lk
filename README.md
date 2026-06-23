@@ -7,8 +7,8 @@ A world-class, futuristic 3D e-commerce showcase and marketplace for buying and 
 ## 🚀 Key Features
 
 ### 🌌 1. Futuristic 3D Showroom & UI
-* **Procedural WebGL 3D Model:** A custom, fully responsive 3D laptop canvas built with vanilla **Three.js** to run at a solid 60 FPS without external model asset overhead.
-* **Interactive Cursor Tracking:** Moving the cursor tilts, rotates, and floats the laptop dynamically, altering specular highlights and reflections on the chassis and screen.
+* **Apple MacBook Pro 3D Render:** A premium 3D isolated render of a modern space grey Apple MacBook Pro, slightly open at a 45-degree angle with a vibrant glowing neon screen (deep blues, purples, and hot pinks), studio-lit metallic edge highlights, and a transparent background.
+* **Interactive Cursor Hover Tilt:** Tracks cursor coordinates to dynamically tilt, roll, and pitch the floating MacBook Pro using fluid Framer Motion spring physics.
 * **Secondary Telemetry Canvas:** The 3D laptop screen displays a dynamic offscreen 2D canvas texture with grid systems, system telemetry, and a glowing digital logo.
 * **Ambient Particles:** A floating neon cyan particle emitter rises behind the canvas.
 * **Glassmorphic Aesthetic:** Deep space black (`#050816`) backing with neon cyan/electric blue ambient auroras, glowing outlines, and premium backdrop blurs.
