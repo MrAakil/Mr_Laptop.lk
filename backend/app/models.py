@@ -130,3 +130,71 @@ class Review(Base):
     # Relationships
     user = relationship("User", back_populates="reviews")
     product = relationship("Product", back_populates="reviews")
+
+class ChatSession(Base):
+    __tablename__ = "chat_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, index=True, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    explicit_requirements = Column(Text, nullable=True)
+    inferred_requirements = Column(Text, nullable=True)
+    rejected_laptops = Column(Text, nullable=True)
+    session_context = Column(Text, nullable=True)
+
+    # Relationships
+    messages = relationship("ChatMessage", back_populates="session", cascade="all, delete-orphan")
+    user = relationship("User")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, ForeignKey("chat_sessions.session_id", ondelete="CASCADE"), nullable=False)
+    role = Column(String, nullable=False)  # "user", "assistant"
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    # Relationships
+    session = relationship("ChatSession", back_populates="messages")
+
+class ProductRequest(Base):
+    __tablename__ = "product_requests"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_name = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
+    requested_laptop = Column(String, nullable=False)
+    budget = Column(Float, nullable=False)
+    use_case = Column(String, nullable=True)
+    status = Column(String, default="New")  # "New", "Pending", "Fulfilled", "Cancelled"
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+class LaptopBenchmark(Base):
+    __tablename__ = "laptop_benchmarks"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=True, unique=True)
+    cpu_score = Column(Integer, default=50)
+    gpu_score = Column(Integer, default=50)
+    portability_score = Column(Integer, default=50)
+    battery_score = Column(Integer, default=50)
+    productivity_score = Column(Integer, default=50)
+    gaming_score = Column(Integer, default=50)
+
+    # Relationships
+    product = relationship("Product", backref="benchmark", uselist=False)
+
+class AgentAnalytics(Base):
+    __tablename__ = "agent_analytics"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, nullable=True)
+    recommended_product = Column(String, nullable=False)
+    conversion_status = Column(String, default="Recommended")  # Recommended, Clicked, Purchased
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+

@@ -306,3 +306,91 @@ class ContactInquiry(BaseModel):
     message: str = Field(..., min_length=1)
 
 
+# --- AI & Consultant Schemas ---
+
+class ChatMessageCreate(BaseModel):
+    message: str
+
+class ChatMessageResponse(BaseModel):
+    id: int
+    session_id: str
+    role: str
+    message: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ChatSessionCreate(BaseModel):
+    pass
+
+class ChatSessionResponse(BaseModel):
+    id: int
+    session_id: str
+    user_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    explicit_requirements: Optional[str] = None
+    inferred_requirements: Optional[str] = None
+    messages: List[ChatMessageResponse] = []
+
+    class Config:
+        from_attributes = True
+
+class ProductRequestCreate(BaseModel):
+    customer_name: str
+    email: EmailStr
+    phone: str
+    requested_laptop: str
+    budget: float
+    use_case: Optional[str] = None
+
+class ProductRequestResponse(BaseModel):
+    id: int
+    customer_name: str
+    email: str
+    phone: str
+    requested_laptop: str
+    budget: float
+    use_case: Optional[str]
+    status: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProductRequestUpdateStatus(BaseModel):
+    status: str
+
+class LaptopBenchmarkCreate(BaseModel):
+    product_id: Optional[int] = None
+    cpu_score: int = 50
+    gpu_score: int = 50
+    portability_score: int = 50
+    battery_score: int = 50
+    productivity_score: int = 50
+    gaming_score: int = 50
+
+class LaptopBenchmarkResponse(BaseModel):
+    id: int
+    product_id: Optional[int]
+    cpu_score: int
+    gpu_score: int
+    portability_score: int
+    battery_score: int
+    productivity_score: int
+    gaming_score: int
+
+    class Config:
+        from_attributes = True
+
+class AICompareRequest(BaseModel):
+    product_ids: List[int]
+
+class AICompareResponse(BaseModel):
+    product_ids: List[int]
+    comparison_text: str
+    scores: Dict[str, Dict[str, int]]  # product_id stringified -> score_dict
+
+
+

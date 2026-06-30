@@ -4,10 +4,31 @@ import uvicorn
 
 from app.config import settings
 from app.database import engine, Base
-from app.routers import auth, products, orders, analytics, admin_users, contact
+from app.routers import auth, products, orders, analytics, admin_users, contact, ai
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+from sqlalchemy import text
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN explicit_requirements TEXT"))
+except Exception:
+    pass
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN inferred_requirements TEXT"))
+except Exception:
+    pass
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN rejected_laptops TEXT"))
+except Exception:
+    pass
+try:
+    with engine.begin() as conn:
+        conn.execute(text("ALTER TABLE chat_sessions ADD COLUMN session_context TEXT"))
+except Exception:
+    pass
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -48,6 +69,8 @@ app.include_router(orders.admin_router, prefix="/api")
 app.include_router(analytics.router, prefix="/api")
 app.include_router(admin_users.router, prefix="/api")
 app.include_router(contact.router, prefix="/api")
+app.include_router(ai.router, prefix="/api")
+
 
 
 @app.get("/")

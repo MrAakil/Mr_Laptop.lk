@@ -6,6 +6,8 @@ import { CartProvider } from "@/context/CartContext";
 import { WishlistProvider } from "@/context/WishlistContext";
 import { CompareProvider } from "@/context/CompareContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { AiProvider } from "@/context/AiContext";
+import AiConsultantWidget from "@/components/AiConsultantWidget";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -18,7 +20,10 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
         <CartProvider>
           <WishlistProvider>
             <CompareProvider>
-              {children}
+              <AiProvider>
+                {children}
+                <AiConsultantWidget />
+              </AiProvider>
             </CompareProvider>
           </WishlistProvider>
         </CartProvider>

@@ -44,7 +44,13 @@ export default function AdminDashboard() {
   const [loadingStats, setLoadingStats] = useState(true);
 
   // Active Management Tab
-  const [adminTab, setAdminTab] = useState<"overview" | "products" | "orders">("overview");
+  const [adminTab, setAdminTab] = useState<"overview" | "products" | "orders" | "requests">("overview");
+
+  // Sourcing Requests States
+  const [requestsList, setRequestsList] = useState<any[]>([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [requestsFilter, setRequestsFilter] = useState("");
+
 
   // Product CRUD states
   const [productsList, setProductsList] = useState<any[]>([]);
@@ -191,12 +197,47 @@ export default function AdminDashboard() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "overview" || tab === "products" || tab === "orders") {
+      if (tab === "overview" || tab === "products" || tab === "orders" || tab === "requests") {
         setAdminTab(tab);
       }
     }
   }, []);
 
+  const loadRequestsData = async () => {
+    setLoadingRequests(true);
+    try {
+      const url = `${API_URL}/ai/requests${requestsFilter ? `?status=${requestsFilter}` : ""}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setRequestsList(data);
+      }
+    } catch (err) {
+      console.error("Failed to load sourcing requests", err);
+    } finally {
+      setLoadingRequests(false);
+    }
+  };
+
+  const handleUpdateRequestStatus = async (id: number, newStatus: string) => {
+    try {
+      const res = await fetch(`${API_URL}/ai/request/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        loadRequestsData();
+      }
+    } catch (err) {
+      console.error("Failed to update sourcing request status", err);
+    }
+  };
 
   // Fetch stats on load
   useEffect(() => {
@@ -205,6 +246,13 @@ export default function AdminDashboard() {
       loadAllProducts();
     }
   }, [user, token]);
+
+  // Load requests data when requests tab matches
+  useEffect(() => {
+    if (user?.role === "admin" && token && adminTab === "requests") {
+      loadRequestsData();
+    }
+  }, [adminTab, requestsFilter, token, user]);
 
   const fetchAnalytics = async () => {
     setLoadingStats(true);
@@ -499,6 +547,14 @@ export default function AdminDashboard() {
               }`}
             >
               Order Manager
+            </button>
+            <button
+              onClick={() => setAdminTab("requests")}
+              className={`px-4 h-10 rounded-xl transition-all ${
+                adminTab === "requests" ? "bg-primary text-primary-foreground" : "hover:bg-secondary text-muted-foreground"
+              }`}
+            >
+              AI Sourcing Requests
             </button>
             <button
               onClick={() => router.push("/admin/users")}
@@ -1067,31 +1123,152 @@ export default function AdminDashboard() {
 
                       </div>
 
-                      {/* Drawer Actions Footer */}
-                      <div className="p-6 border-t border-border/40 flex gap-3">
-                        <button
-                          onClick={() => handleDownloadInvoice(selectedOrder.id, selectedOrder.order_number)}
-                          className="flex-1 h-11 bg-secondary border border-glass-border hover:bg-secondary/80 text-foreground font-black rounded-xl text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <Download className="h-4 w-4" />
-                          <span>Stream invoice PDF</span>
-                        </button>
-                        <button
-                          onClick={() => handleAdminDeleteOrder(selectedOrder.id)}
-                          className="h-11 px-4 bg-red-500/10 hover:bg-red-500/20 text-red-500 font-bold rounded-xl text-xs flex items-center justify-center gap-1 transition-all cursor-pointer"
-                          title="Soft delete order"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span>Delete Order</span>
-                        </button>
-                      </div>
-
                     </div>
                   </div>
                 )}
 
               </div>
             )}
+
+            {/* AI PRODUCT REQUESTS TAB */}
+            {adminTab === "requests" && (
+              <div className="space-y-8 animate-fade-in">
+                {/* A. Sourcing Requests Stats Cards */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">New Requests</span>
+                    <span className="text-xl sm:text-2xl font-black text-cyan-400">
+                      {requestsList.filter((r) => r.status === "New" || r.status === "new").length} New
+                    </span>
+                  </div>
+                  <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Pending Requests</span>
+                    <span className="text-xl sm:text-2xl font-black text-amber-500">
+                      {requestsList.filter((r) => r.status === "Pending").length} Pending
+                    </span>
+                  </div>
+                  <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Fulfilled</span>
+                    <span className="text-xl sm:text-2xl font-black text-emerald-500">
+                      {requestsList.filter((r) => r.status === "Fulfilled").length} Sourced
+                    </span>
+                  </div>
+                  <div className="p-6 rounded-3xl border border-glass-border bg-card/65 backdrop-blur-md">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground block mb-1">Total Sourcing Requests</span>
+                    <span className="text-xl sm:text-2xl font-black text-foreground">
+                      {requestsList.length} Leads
+                    </span>
+                  </div>
+                </div>
+
+                {/* B. Sourcing Requests Table */}
+                <div className="rounded-3xl border border-glass-border glass overflow-hidden bg-card/40">
+                  <div className="p-6 border-b border-border/40 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <h3 className="text-sm font-black uppercase tracking-wider text-slate-100">AI Customer Requests</h3>
+                      <p className="text-[10px] text-muted-foreground mt-0.5">Manage customer custom sourcing requests for out-of-stock devices.</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <select
+                        value={requestsFilter}
+                        onChange={(e) => setRequestsFilter(e.target.value)}
+                        className="h-9 px-3 rounded-xl bg-secondary border border-border text-xs focus:outline-none focus:border-cyan-400"
+                      >
+                        <option value="">All Statuses</option>
+                        <option value="New">New</option>
+                        <option value="Pending">Pending</option>
+                        <option value="Fulfilled">Fulfilled</option>
+                        <option value="Cancelled">Cancelled</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {loadingRequests ? (
+                    <div className="flex justify-center py-20">
+                      <Loader2 className="h-8 w-8 animate-spin text-cyan-400" />
+                    </div>
+                  ) : requestsList.length === 0 ? (
+                    <div className="text-center py-20 text-muted-foreground text-xs font-mono">
+                      No sourcing requests found in database.
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="border-b border-border/40 bg-secondary/10">
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Date</th>
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Customer Info</th>
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Laptop & Use-Case</th>
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Target Budget</th>
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Status</th>
+                            <th className="px-6 py-4 font-bold text-muted-foreground uppercase text-[9px] tracking-wider font-mono">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {requestsList.map((req) => (
+                            <tr key={req.id} className="border-b border-border/20 hover:bg-white/5 transition-colors">
+                              <td className="px-6 py-4 font-mono text-[10px] text-slate-400">
+                                {new Date(req.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-bold text-slate-200">{req.customer_name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{req.email}</div>
+                                <div className="text-[10px] text-slate-400 font-mono">{req.phone}</div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="font-bold text-cyan-400">{req.requested_laptop}</div>
+                                {req.use_case && (
+                                  <div className="text-[10px] text-slate-400 mt-1 max-w-xs italic truncate" title={req.use_case}>
+                                    "{req.use_case}"
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-6 py-4 font-bold text-slate-200 font-mono">
+                                LKR {req.budget.toLocaleString()}
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold font-mono ${
+                                  req.status === "New" || req.status === "new"
+                                    ? "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20"
+                                    : req.status === "Pending"
+                                    ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                                    : req.status === "Fulfilled"
+                                    ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                    : "bg-red-500/10 text-red-400 border border-red-500/20"
+                                }`}>
+                                  {req.status}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 flex gap-1.5 items-center">
+                                <button
+                                  onClick={() => handleUpdateRequestStatus(req.id, "Pending")}
+                                  className="px-2 py-1 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 rounded-lg text-[9px] font-bold border border-amber-500/20 transition-all cursor-pointer"
+                                >
+                                  Process
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateRequestStatus(req.id, "Fulfilled")}
+                                  className="px-2 py-1 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 rounded-lg text-[9px] font-bold border border-emerald-500/20 transition-all cursor-pointer"
+                                >
+                                  Fulfill
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateRequestStatus(req.id, "Cancelled")}
+                                  className="px-2 py-1 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-[9px] font-bold border border-red-500/20 transition-all cursor-pointer"
+                                >
+                                  Cancel
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           </>
         )}
 

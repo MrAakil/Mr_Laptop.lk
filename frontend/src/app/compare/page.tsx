@@ -1,16 +1,43 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCompare } from "@/context/CompareContext";
 import { useCart } from "@/context/CartContext";
+import { useAi } from "@/context/AiContext";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { GitCompare, ShoppingCart, Trash2, ArrowLeft, Star, Cpu, Sliders, Battery, Monitor, Scale } from "lucide-react";
+import { GitCompare, ShoppingCart, Trash2, ArrowLeft, Star, Cpu, Sliders, Battery, Monitor, Scale, Sparkles, Loader2 } from "lucide-react";
 
 export default function ComparePage() {
   const { compareList, toggleCompare, clearCompare } = useCompare();
   const { addToCart } = useCart();
+  const { getComparisonSummary } = useAi();
+  
+  const [aiCompare, setAiCompare] = useState<any>(null);
+  const [loadingAi, setLoadingAi] = useState(false);
+
+  useEffect(() => {
+    if (compareList.length >= 2) {
+      const fetchAiCompare = async () => {
+        setLoadingAi(true);
+        try {
+          const ids = compareList.map((p) => p.id);
+          const data = await getComparisonSummary(ids);
+          if (data) {
+            setAiCompare(data);
+          }
+        } catch (err) {
+          console.error("AI Compare failed:", err);
+        } finally {
+          setLoadingAi(false);
+        }
+      };
+      fetchAiCompare();
+    } else {
+      setAiCompare(null);
+    }
+  }, [compareList]);
 
   // Performance calculation helpers
   const getCpuPerformance = (cpu: string) => {
@@ -90,7 +117,8 @@ export default function ComparePage() {
         </div>
 
         {compareList.length > 0 ? (
-          <div className="overflow-x-auto rounded-3xl border border-glass-border glass shadow-2xl">
+          <>
+            <div className="overflow-x-auto rounded-3xl border border-glass-border glass shadow-2xl">
             <table className="w-full text-left text-xs border-collapse min-w-[700px]">
               <thead>
                 <tr className="border-b border-border bg-secondary/20">
@@ -328,6 +356,95 @@ export default function ComparePage() {
               </tbody>
             </table>
           </div>
+
+          {/* AI CONSULTANT EVALUATION & WORKLOAD METRICS PANEL */}
+          {compareList.length >= 2 && (
+            <div className="mt-12 space-y-8 animate-fade-in">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-5 w-5 text-cyan-400" />
+                <h2 className="text-lg font-black text-foreground uppercase tracking-widest text-[11px] font-mono">
+                  AI Consultant side-by-side analysis
+                </h2>
+              </div>
+
+              {loadingAi ? (
+                <div className="rounded-3xl border border-glass-border glass p-8 flex flex-col items-center justify-center py-20">
+                  <Loader2 className="h-8 w-8 animate-spin text-cyan-400 mb-4" />
+                  <p className="text-xs text-muted-foreground font-mono">
+                    Generating model matrices and workloads comparisons...
+                  </p>
+                </div>
+              ) : aiCompare ? (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Left Column: Natural Language Evaluation Summary */}
+                  <div className="lg:col-span-2 rounded-3xl border border-glass-border glass p-6 backdrop-blur-xl bg-slate-950/40 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-cyan-500 to-blue-500"></div>
+                    <h3 className="text-sm font-black text-cyan-400 uppercase tracking-widest text-[10px] font-mono mb-4 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 text-cyan-400" /> Synthesis & Recommendation
+                    </h3>
+                    <div className="text-xs leading-relaxed text-slate-300 space-y-4 whitespace-pre-line font-sans">
+                      {aiCompare.comparison_text}
+                    </div>
+                  </div>
+
+                  {/* Right Column: Comparative Workload Scores */}
+                  <div className="rounded-3xl border border-glass-border glass p-6 backdrop-blur-xl bg-slate-950/40 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-purple-500 to-cyan-500"></div>
+                    <h3 className="text-sm font-black text-purple-400 uppercase tracking-widest text-[10px] font-mono mb-6">
+                      Workload Performance Indexes
+                    </h3>
+                    
+                    <div className="space-y-6">
+                      {compareList.map((product) => {
+                        const prodScores = aiCompare.scores?.[product.id.toString()] || {
+                          Gaming: 50,
+                          Productivity: 50,
+                          "AI/ML": 50,
+                          Battery: 50,
+                          Portability: 50,
+                          "Value for Money": 50
+                        };
+
+                        return (
+                          <div key={product.id} className="space-y-3 bg-secondary/10 p-4 rounded-2xl border border-white/5">
+                            <h4 className="text-xs font-bold text-slate-200 truncate border-b border-white/5 pb-1.5">
+                              {product.brand} {product.name}
+                            </h4>
+                            
+                            <div className="space-y-2 text-[10px] font-mono">
+                              {Object.entries(prodScores).map(([metric, val]) => (
+                                <div key={metric} className="space-y-1">
+                                  <div className="flex justify-between text-slate-400 text-[9px]">
+                                    <span>{metric}</span>
+                                    <span className="font-bold text-cyan-400">{(val as any)}/100</span>
+                                  </div>
+                                  <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full bg-gradient-to-r ${
+                                        metric === "Gaming"
+                                          ? "from-red-500 to-orange-400"
+                                          : metric === "AI/ML"
+                                          ? "from-purple-500 to-pink-500"
+                                          : metric === "Battery"
+                                          ? "from-emerald-500 to-green-400"
+                                          : "from-cyan-500 to-blue-500"
+                                      }`}
+                                      style={{ width: `${(val as any)}%` }}
+                                    ></div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+          </>
         ) : (
           <div className="text-center py-20 border border-dashed border-border rounded-3xl glass max-w-md mx-auto">
             <div className="mx-auto w-12 h-12 rounded-full bg-secondary text-muted-foreground flex items-center justify-center mb-4">
