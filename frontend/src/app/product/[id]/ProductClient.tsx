@@ -346,25 +346,7 @@ export const ProductClient: React.FC<ProductClientProps> = ({ productId }) => {
               </div>
             </div>
 
-            {/* Quick trust assurances */}
-            <div className="grid grid-cols-2 gap-4 border-t border-border/40 pt-6">
-              <div className="flex items-center gap-2.5">
-                <Shield className="h-5 w-5 text-primary" />
-                <div className="text-xs">
-                  <div className="font-bold">Warranty Guarantee</div>
-                  <div className="text-muted-foreground">
-                    {product.condition === "New" ? "2 Years Local Warranty" : "6 Months Store Warranty"}
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Sparkles className="h-5 w-5 text-primary" />
-                <div className="text-xs">
-                  <div className="font-bold">Inspected & Certified</div>
-                  <div className="text-muted-foreground">Tested in Colombo Hardware Lab</div>
-                </div>
-              </div>
-            </div>
+
 
           </div>
         </div>
